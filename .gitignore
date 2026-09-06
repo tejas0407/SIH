@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+.next/
+out/
+npm-debug.log*
+.pnpm-debug.log*
+
+# Env & secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Data / artifacts
+backend/.data/
+minio-data/
+pgdata/
+*.log
+.DS_Store

@@ -1,0 +1,186 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Devanagari:wght@400;500;600&family=IBM+Plex+Sans:wght@400;450;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Design intent
+  -------------
+  This is an instrument, not a marketing surface. A Patwari sits with it for
+  hours comparing a scan against a form, and the only thing colour is allowed
+  to mean here is confidence: green read cleanly, amber needs a look, red
+  failed a rule. Every other surface stays near-monochrome so those three
+  signals never have to compete with decorative colour.
+
+  Devanagari and Latin sit side by side in the same table cell, so the type
+  stack pairs IBM Plex Sans with its Devanagari companion — same designer, same
+  metrics, so a Hindi owner name and its transliteration share a baseline.
+  Monospace is used only for identifiers a reviewer compares digit by digit:
+  Khasra numbers, ULPINs and ledger hashes.
+*/
+
+:root {
+  --surface: #eeeff1;
+  --panel: #ffffff;
+  --well: #10161c;
+  --ink: #1a2229;
+  --ink-muted: #5b6873;
+  --rule: #d3d8de;
+  --rule-strong: #b3bcc6;
+
+  --verified: #16714f;
+  --review: #a9690a;
+  --critical: #a32020;
+  --focus: #2c4a7c;
+
+  --verified-wash: #e6f2ec;
+  --review-wash: #fbf1de;
+  --critical-wash: #f9e8e8;
+  --focus-wash: #e7edf6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", "IBM Plex Sans Devanagari", system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-vernacular {
+  font-family: "IBM Plex Sans Devanagari", "IBM Plex Sans", sans-serif;
+}
+
+.font-id {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Keyboard focus must stay obvious: reviewers tab through these forms all day. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.field {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 7px 9px;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.field:hover {
+  border-color: var(--rule-strong);
+}
+
+.field:focus {
+  border-color: var(--focus);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-wash);
+}
+
+/* Confidence state on an input mirrors the box colour on the scan, so the eye
+   can travel between the two panes without re-reading anything. */
+.field[data-confidence="high"] {
+  border-left: 3px solid var(--verified);
+}
+.field[data-confidence="medium"] {
+  border-left: 3px solid var(--review);
+  background: var(--review-wash);
+}
+.field[data-confidence="low"] {
+  border-left: 3px solid var(--critical);
+  background: var(--critical-wash);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 3px;
+  padding: 8px 14px;
+  border: 1px solid var(--rule-strong);
+  background: var(--panel);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: #f7f8f9;
+  border-color: var(--ink-muted);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2a343d;
+  border-color: #2a343d;
+}
+
+.scan-canvas {
+  background-color: var(--well);
+  background-image: linear-gradient(45deg, #161d25 25%, transparent 25%),
+    linear-gradient(-45deg, #161d25 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #161d25 75%),
+    linear-gradient(-45deg, transparent 75%, #161d25 75%);
+  background-size: 22px 22px;
+  background-position: 0 0, 0 11px, 11px -11px, -11px 0;
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--rule-strong);
+  border-radius: 6px;
+  border: 3px solid var(--surface);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
