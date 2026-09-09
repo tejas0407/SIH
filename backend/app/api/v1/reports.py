@@ -13,8 +13,9 @@ from geoalchemy2.shape import to_shape
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user
 from app.db.session import get_db
-from app.models.land import ApprovalStatus, KhataRecord
+from app.models.land import ApprovalStatus, KhataRecord, User
 from app.services.units import supported_units
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -151,7 +152,10 @@ async def list_units() -> list[dict]:
 
 
 @router.get("/summary")
-async def summary(db: AsyncSession = Depends(get_db)) -> dict:
+async def summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
     khatas = (await db.execute(select(KhataRecord))).scalars().all()
     approved = [
         k for k in khatas

@@ -11,8 +11,9 @@ import ReviewForm, { type Draft, type Tab } from "@/components/ReviewForm";
 import BalanceStrip from "@/components/BalanceStrip";
 import SignModal from "@/components/SignModal";
 import { fetchKhata, verifyKhata } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { AREA_TOLERANCE, SHARE_TOLERANCE, pct, toNumber } from "@/lib/format";
-import { useReviewStore, type FocusTarget } from "@/lib/store";
+import { type FocusTarget } from "@/lib/store";
 import type { KhataDetail, ValidationFinding } from "@/lib/types";
 
 export default function ReviewPage() {
@@ -20,8 +21,11 @@ export default function ReviewPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const reviewerId = useReviewStore((s) => s.reviewerId);
-  const role = useReviewStore((s) => s.role);
+  // Identity comes from the signed-in session. The backend takes the actor off
+  // the token regardless, so this only needs to match what the reviewer sees.
+  const user = useAuth((s) => s.user);
+  const reviewerId = user?.login_id ?? "unknown";
+  const role: "PATWARI" | "TEHSILDAR" = user?.role === "TEHSILDAR" ? "TEHSILDAR" : "PATWARI";
 
   const [draft, setDraft] = useState<Draft | null>(null);
   const [tab, setTab] = useState<Tab>("khata");

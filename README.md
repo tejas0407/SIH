@@ -41,7 +41,7 @@ cp .env.example .env
 docker compose -f docker/docker-compose.yml --env-file .env up --build
 ```
 
-Then load the three demo records:
+Then load the demo reviewer accounts and the three demo records:
 
 ```bash
 docker compose -f docker/docker-compose.yml exec backend python -m app.seed.load_demo
@@ -55,6 +55,22 @@ docker compose -f docker/docker-compose.yml exec backend python -m app.seed.load
 | MinIO console | http://localhost:9001 (`minioadmin` / `minioadmin`) |
 
 `make up`, `make seed`, `make test` wrap the same commands.
+
+### Signing in
+
+The console is behind a user-ID-and-password sign-in. The seed creates two
+accounts, one per role:
+
+| Role | User ID | Password | Can |
+|---|---|---|---|
+| Patwari | `patwari.demo` | `patwari@123` | Verify and commit records that pass every check |
+| Tehsildar | `tehsildar.demo` | `tehsildar@123` | Also override a failed arithmetic check, on the ledger |
+
+`POST /api/v1/auth/login` returns a bearer token (a 12-hour JWT); every write
+endpoint takes the actor and role straight off that token, so the audit ledger
+names whoever actually holds the session rather than trusting the request body.
+`make seed-users` re-creates or resets just these accounts. The token secret is
+`JWT_SECRET_KEY` in `.env` — change it for any real deployment.
 
 ---
 
@@ -188,6 +204,8 @@ those three signals.
 
 | Method | Route | Purpose |
 |---|---|---|
+| `POST` | `/api/v1/auth/login` | User ID + password → bearer token and the reviewer's role |
+| `GET` | `/api/v1/auth/me` | The account the current token belongs to |
 | `POST` | `/api/v1/documents/upload` | Multipart upload, queues a job, returns `job_id` |
 | `GET` | `/api/v1/documents/{id}/status` | Step and percentage progress |
 | `GET` | `/api/v1/hitl/queue` | Paginated review queue, least confident first |
@@ -208,12 +226,13 @@ and that override is itself written into the ledger.
 ## Tests
 
 ```bash
-cd backend && pytest -q      # 33 tests
+cd backend && pytest -q      # 40 tests
 ```
 
 They run with no OCR model on disk, covering unit conversion and regional ambiguity, ULPIN
 integrity and reversibility, every validation invariant, deskew accuracy against known rotations,
-Sauvola under uneven lighting, table detection on a degraded page, and row grouping.
+Sauvola under uneven lighting, table detection on a degraded page, row grouping, and the
+sign-in crypto — bcrypt round-trips and JWT signing, expiry and tamper rejection.
 
 Three real bugs were found by running them:
 
@@ -231,18 +250,18 @@ Three real bugs were found by running them:
 ```
 backend/
   app/
-    api/v1/        documents, hitl, reports
-    services/      cv_pipeline, validator, units, ulpin, audit, storage
+    api/           deps (auth guard); v1/ documents, hitl, reports, auth
+    services/      cv_pipeline, validator, units, ulpin, audit, auth, storage
     workers/       celery_app, tasks, queue
     models/        SQLAlchemy ORM
     schemas/       Pydantic DTOs
-    seed/          synthetic scan generator + demo loader
-  migrations/      001_init_schema.sql
+    seed/          synthetic scan generator + demo loader + user loader
+  migrations/      001_init_schema.sql, 002_users.sql
   tests/
 frontend/
-  app/             landing, queue, review/[khataId]
-  components/      DocumentViewer, ReviewForm, BalanceStrip, SignModal
-  lib/             api, store, types, format
+  app/             login, landing, queue, review/[khataId]
+  components/      AuthGate, AppHeader, DocumentViewer, ReviewForm, BalanceStrip, SignModal
+  lib/             api, auth, session, store, types, format
 docker/            compose + both Dockerfiles
 ```
 

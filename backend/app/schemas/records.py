@@ -253,8 +253,10 @@ class VerifyRequest(BaseModel):
     declared_unit: str | None = None
     parcels: list[ParcelCorrection] = Field(default_factory=list)
     owners: list[OwnerCorrection] = Field(default_factory=list)
-    reviewer_id: str
-    role: ActorRole = ActorRole.PATWARI
+    # Kept for backward compatibility; the server now takes the actor and role
+    # from the signed-in session and ignores whatever the body claims here.
+    reviewer_id: str | None = None
+    role: ActorRole | None = None
     reason: str | None = None
     force_approve: bool = Field(
         default=False,

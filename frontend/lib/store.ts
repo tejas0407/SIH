@@ -20,27 +20,19 @@ export interface FocusTarget {
 interface ReviewState {
   focused: FocusTarget | null;
   hovered: string | null;
-  reviewerId: string;
-  role: "PATWARI" | "TEHSILDAR";
   showOverlay: boolean;
 
   focusField: (target: FocusTarget | null) => void;
   hoverField: (key: string | null) => void;
-  setReviewer: (id: string, role: "PATWARI" | "TEHSILDAR") => void;
   toggleOverlay: () => void;
 }
 
 export const useReviewStore = create<ReviewState>((set) => ({
   focused: null,
   hovered: null,
-  // In a deployment this comes from the DILRMP SSO session; the demo runs
-  // against a fixed identity so the audit ledger still has a real actor.
-  reviewerId: "patwari.demo",
-  role: "PATWARI",
   showOverlay: true,
 
   focusField: (target) => set({ focused: target }),
   hoverField: (key) => set({ hovered: key }),
-  setReviewer: (reviewerId, role) => set({ reviewerId, role }),
   toggleOverlay: () => set((state) => ({ showOverlay: !state.showOverlay })),
 }));

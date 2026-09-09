@@ -1,4 +1,4 @@
-.PHONY: up down build logs seed test fmt clean push
+.PHONY: up down build logs seed seed-users test fmt clean push
 
 up:            ## Start the full offline stack
 	docker compose -f docker/docker-compose.yml --env-file .env up --build
@@ -9,8 +9,11 @@ down:
 logs:
 	docker compose -f docker/docker-compose.yml logs -f backend celery_worker
 
-seed:          ## Load the three demo land records (Cases A, B, C)
+seed:          ## Load the demo reviewer accounts and the three land records (Cases A, B, C)
 	docker compose -f docker/docker-compose.yml exec backend python -m app.seed.load_demo
+
+seed-users:    ## Create/reset just the demo reviewer accounts
+	docker compose -f docker/docker-compose.yml exec backend python -m app.seed.load_users
 
 test:
 	docker compose -f docker/docker-compose.yml exec backend pytest -q

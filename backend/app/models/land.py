@@ -9,6 +9,7 @@ from decimal import Decimal
 from geoalchemy2 import Geometry
 from sqlalchemy import (
     JSON,
+    Boolean,
     CheckConstraint,
     DateTime,
     Enum,
@@ -61,6 +62,33 @@ class ActorRole(str, enum.Enum):
 
 def _uuid_col(**kw):
     return mapped_column(UUID(as_uuid=True), default=uuid.uuid4, **kw)
+
+
+class User(Base):
+    """A person who signs in to the reviewer console. The role reuses the same
+    `actor_role` enum the audit ledger records against, so whoever is signed in
+    is exactly who the ledger names for every correction they make."""
+
+    __tablename__ = "users"
+
+    user_id: Mapped[uuid.UUID] = _uuid_col(primary_key=True)
+    # Stored lower-cased; sign-in is case-insensitive on the login id.
+    login_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    display_name: Mapped[str] = mapped_column(String(160))
+    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[ActorRole] = mapped_column(
+        # The enum type is created by migration 001; do not redeclare it here.
+        Enum(
+            ActorRole,
+            name="actor_role",
+            values_callable=lambda e: [m.value for m in e],
+            create_type=False,
+        ),
+        default=ActorRole.PATWARI,
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class Village(Base):

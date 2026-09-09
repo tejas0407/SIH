@@ -18,6 +18,21 @@ export type ApprovalStatus =
 
 export type Severity = "CRITICAL" | "WARNING" | "INFO";
 export type ActorRole = "PATWARI" | "TEHSILDAR" | "SYSTEM";
+
+export interface AuthUser {
+  user_id: string;
+  login_id: string;
+  display_name: string;
+  role: ActorRole;
+  last_login_at: string | null;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  user: AuthUser;
+}
 export type RelationType = "S/o" | "D/o" | "W/o" | "C/o";
 
 export interface BBox {

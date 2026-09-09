@@ -9,9 +9,10 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user
 from app.core.config import settings
 from app.db.session import get_db
-from app.models.land import Document, ProcessingStatus
+from app.models.land import Document, ProcessingStatus, User
 from app.schemas.records import DocumentStatus, UploadResponse
 from app.services.storage import get_store, sha256_bytes
 
@@ -30,8 +31,8 @@ MAX_BYTES = 60 * 1024 * 1024
 async def upload_document(
     file: UploadFile = File(..., description="Scanned Jamabandi / 7-12 / Khatauni"),
     village_code: str | None = Form(default=None),
-    uploaded_by: str = Form(default="patwari.demo"),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> UploadResponse:
     if file.content_type not in ACCEPTED:
         raise HTTPException(
@@ -85,7 +86,7 @@ async def upload_document(
         mime_type=file.content_type,
         processing_status=ProcessingStatus.QUEUED,
         current_step="Queued for preprocessing",
-        uploaded_by=uploaded_by,
+        uploaded_by=current_user.login_id,
         village_code=village_code,
     )
     db.add(document)
@@ -105,7 +106,11 @@ async def upload_document(
 
 
 @router.get("/{document_id}/status", response_model=DocumentStatus)
-async def get_status(document_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> DocumentStatus:
+async def get_status(
+    document_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DocumentStatus:
     document = (
         await db.execute(select(Document).where(Document.document_id == document_id))
     ).scalar_one_or_none()
@@ -127,7 +132,11 @@ async def get_status(document_id: uuid.UUID, db: AsyncSession = Depends(get_db))
 
 
 @router.get("", response_model=list[DocumentStatus])
-async def list_documents(limit: int = 25, db: AsyncSession = Depends(get_db)):
+async def list_documents(
+    limit: int = 25,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     stmt = select(Document).order_by(Document.created_at.desc()).limit(min(limit, 100))
     documents = (await db.execute(stmt)).scalars().all()
     return [

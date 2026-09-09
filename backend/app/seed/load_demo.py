@@ -33,6 +33,7 @@ from app.models.land import (
     Village,
 )
 from app.seed.generate_scans import write_all
+from app.seed.load_users import seed_users
 from app.services.storage import get_store, sha256_bytes
 from app.services.ulpin import generate_ulpin
 from app.services.validator import LandRecordValidator
@@ -339,6 +340,9 @@ def main() -> None:
 
     session = SyncSessionLocal()
     try:
+        print("reviewer accounts:")
+        for line in seed_users(session):
+            print("  " + line)
         seed_villages(session)
         print(f"villages: {len(VILLAGES)} ready")
         for case in CASES:
@@ -346,7 +350,8 @@ def main() -> None:
     finally:
         session.close()
 
-    print("\nOpen http://localhost:3000/queue to review the flagged records.")
+    print("\nSign in at http://localhost:3000/login (patwari.demo / patwari@123),")
+    print("then open http://localhost:3000/queue to review the flagged records.")
 
 
 if __name__ == "__main__":

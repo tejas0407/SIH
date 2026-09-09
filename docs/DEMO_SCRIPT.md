@@ -8,7 +8,8 @@ docker compose -f docker/docker-compose.yml --env-file .env up --build -d
 docker compose -f docker/docker-compose.yml exec backend python -m app.seed.load_demo
 ```
 
-The seed prints one line per case, and those three lines are the whole argument:
+The seed also creates two reviewer accounts and prints one line per demo case;
+those three case lines are the whole argument:
 
 ```
 case_a_clean_712.png: Khata 142 auto-committed at 97.4%
@@ -16,6 +17,23 @@ case_b_degraded_khatauni.png: Khata 87 routed to review — confidence 81.1% bel
 case_c_area_discrepancy.png: Khata 305 routed to review — Parcel areas total 11500.0000 sqm
                              but the Khata declares 10000.0000 sqm — a difference of 1500.0000 sqm
 ```
+
+---
+
+## 0. Signing in (15s)
+
+Open http://localhost:3000. Every route is behind a sign-in, so the console
+sends you to `/login`. Sign in as the Patwari:
+
+```
+patwari.demo / patwari@123
+```
+
+For section 3, where a Tehsildar overrides a failed check, sign out from the top
+bar and sign back in as `tehsildar.demo / tehsildar@123`. The point to make:
+the token carries the role, and the server reads the actor off the token — so
+the ledger entry in section 3 names whoever was actually signed in, not a value
+the browser sent.
 
 ---
 
@@ -83,10 +101,14 @@ Now demonstrate that it cannot be waved through:
    then commits.
 
 Open the **History** tab afterwards: the correction is there with its hash. Then prove the ledger is
-real:
+real (the HITL routes need a token now — grab one from the login endpoint):
 
 ```bash
-curl -s localhost:8000/api/v1/hitl/<khata_id>/ledger
+TOKEN=$(curl -s localhost:8000/api/v1/auth/login \
+  -H 'content-type: application/json' \
+  -d '{"login_id":"patwari.demo","password":"patwari@123"}' | python -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+
+curl -s -H "Authorization: Bearer $TOKEN" localhost:8000/api/v1/hitl/<khata_id>/ledger
 # {"intact": true, "entries_checked": 3, "head": "9f2c…"}
 ```
 

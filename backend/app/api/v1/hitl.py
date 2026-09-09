@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_current_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.land import (
@@ -29,6 +30,7 @@ from app.models.land import (
     OwnershipDetail,
     ProcessingStatus,
     RelationType,
+    User,
 )
 from app.schemas.records import (
     AuditEntry,
@@ -76,6 +78,7 @@ async def review_queue(
     village_code: str | None = None,
     sort: str = Query("confidence", pattern="^(confidence|oldest|newest)$"),
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> QueuePage:
     """Records awaiting a human read. Sorted by confidence ascending by default
     so the worst extractions reach a reviewer first."""
@@ -124,7 +127,11 @@ async def review_queue(
 
 
 @router.get("/{khata_id}", response_model=KhataDetail)
-async def get_record(khata_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> KhataDetail:
+async def get_record(
+    khata_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> KhataDetail:
     khata = await _load_khata(db, khata_id)
 
     document = (
@@ -168,16 +175,24 @@ async def get_record(khata_id: uuid.UUID, db: AsyncSession = Depends(get_db)) ->
 
 @router.put("/{khata_id}/verify", response_model=VerifyResponse)
 async def verify_record(
-    khata_id: uuid.UUID, body: VerifyRequest, db: AsyncSession = Depends(get_db)
+    khata_id: uuid.UUID,
+    body: VerifyRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> VerifyResponse:
     khata = await _load_khata(db, khata_id)
     audit_count = 0
+
+    # The actor is taken from the signed-in session, never from the request
+    # body — the ledger must name whoever actually holds the token.
+    actor_id = current_user.login_id
+    actor_role = current_user.role
 
     async def log(field: str, old, new, entity_type="khata", entity_id=None):
         nonlocal audit_count
         if str(old) != str(new):
             await audit_service.record_change(
-                db, khata_id, field, old, new, body.reviewer_id, body.role,
+                db, khata_id, field, old, new, actor_id, actor_role,
                 body.reason, entity_type, entity_id,
             )
             audit_count += 1
@@ -294,11 +309,11 @@ async def verify_record(
     khata.layout_confidence = report.layout_confidence
     khata.math_checks_pass = report.math_checks_pass
     khata.confidence_score = report.total_confidence
-    khata.reviewed_by = body.reviewer_id
+    khata.reviewed_by = actor_id
     khata.reviewed_at = datetime.now(timezone.utc)
 
     blocking = report.critical
-    override = body.force_approve and body.role == ActorRole.TEHSILDAR
+    override = body.force_approve and actor_role == ActorRole.TEHSILDAR
 
     if not blocking or override:
         khata.approval_status = ApprovalStatus.MANUALLY_APPROVED
@@ -307,7 +322,7 @@ async def verify_record(
             await audit_service.record_change(
                 db, khata_id, "approval.override",
                 f"{len(blocking)} critical finding(s) open", "MANUALLY_APPROVED",
-                body.reviewer_id, body.role,
+                actor_id, actor_role,
                 body.reason or "Tehsildar override on open critical findings",
             )
             audit_count += 1
@@ -355,7 +370,11 @@ async def verify_record(
 
 
 @router.get("/{khata_id}/ledger")
-async def ledger_integrity(khata_id: uuid.UUID, db: AsyncSession = Depends(get_db)) -> dict:
+async def ledger_integrity(
+    khata_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
     """Recompute the audit hash chain and report whether it is intact."""
     await _load_khata(db, khata_id)
     return await audit_service.verify_chain(db, khata_id)
@@ -364,21 +383,20 @@ async def ledger_integrity(khata_id: uuid.UUID, db: AsyncSession = Depends(get_d
 @router.post("/{khata_id}/reject", response_model=VerifyResponse)
 async def reject_record(
     khata_id: uuid.UUID,
-    reviewer_id: str,
     reason: str,
-    role: ActorRole = ActorRole.TEHSILDAR,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> VerifyResponse:
     """Send a scan back to the record room — used when the source page is too
     damaged to digitise rather than merely mis-read."""
     khata = await _load_khata(db, khata_id)
     khata.approval_status = ApprovalStatus.REJECTED
-    khata.reviewed_by = reviewer_id
+    khata.reviewed_by = current_user.login_id
     khata.reviewed_at = datetime.now(timezone.utc)
 
     await audit_service.record_change(
         db, khata_id, "approval_status", khata.approval_status.value, "REJECTED",
-        reviewer_id, role, reason,
+        current_user.login_id, current_user.role, reason,
     )
     await db.commit()
     remove_from_hitl_queue(str(khata_id))

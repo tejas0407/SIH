@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     # --- Security ---
     AADHAAR_HASH_SALT: str = "change-me-in-production"
 
+    # --- Auth ---
+    # Signs the reviewer session token. Override in .env for any real deployment;
+    # the demo value keeps `docker compose up` working with no extra setup.
+    JWT_SECRET_KEY: str = "dev-only-change-me-dilrmp-session-secret"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRY_MINUTES: int = 720  # one working shift
+
     @property
     def async_database_url(self) -> str:
         return (
