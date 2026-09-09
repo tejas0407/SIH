@@ -49,6 +49,39 @@
   --verified-border: rgba(52, 211, 153, 0.32);
   --review-border: rgba(251, 191, 36, 0.34);
   --critical-border: rgba(251, 113, 133, 0.42);
+
+  /* National palette — used only in the government chrome, never for data. */
+  --saffron: #ff9933;
+  --india-green: #138808;
+  --gov-navy: #0b1220;
+}
+
+/* GIGW high-contrast mode: maximum separation, no subtle washes. */
+:root[data-contrast="high"] {
+  --surface: #000000;
+  --panel: #000000;
+  --panel-raised: #0a0a0a;
+  --well: #000000;
+  --ink: #ffffff;
+  --ink-muted: #f4f4f5;
+  --ink-faint: #d4d4d8;
+  --rule: #8a8a8a;
+  --rule-strong: #c8c8c8;
+  --verified: #4ade80;
+  --review: #fcd34d;
+  --critical: #ff8a9b;
+  --focus: #93c5fd;
+  --verified-wash: rgba(74, 222, 128, 0.2);
+  --review-wash: rgba(252, 211, 77, 0.2);
+  --critical-wash: rgba(255, 138, 155, 0.22);
+  --focus-wash: rgba(147, 197, 253, 0.28);
+  --verified-border: #4ade80;
+  --review-border: #fcd34d;
+  --critical-border: #ff8a9b;
+}
+:root[data-contrast="high"] .field,
+:root[data-contrast="high"] .btn {
+  border-width: 2px;
 }
 
 * {
@@ -66,10 +99,57 @@ body {
   background: var(--surface);
   color: var(--ink);
   font-family: "Inter", "Noto Sans Devanagari", system-ui, -apple-system, sans-serif;
-  font-size: 14px;
+  font-size: 0.875rem; /* 14px at the default root size; scales with the A-/A/A+ control */
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* ---- government chrome helpers ------------------------------------- */
+.tricolor-edge {
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(
+    to right,
+    var(--saffron) 0%,
+    var(--saffron) 33.33%,
+    #ffffff 33.33%,
+    #ffffff 66.66%,
+    var(--india-green) 66.66%,
+    var(--india-green) 100%
+  );
+}
+
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 100;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--focus);
+  border-radius: 4px;
+  padding: 6px 12px;
+  transition: top 120ms ease;
+}
+.skip-link:focus {
+  top: 8px;
+}
+
+/* Stamp-style status badge for the Record of Rights ledger. */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 3px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent);
 }
 
 .font-vernacular {

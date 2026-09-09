@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Landmark, Loader2, LogIn } from "lucide-react";
+import { Loader2, LogIn } from "lucide-react";
+import EmblemPlaceholder from "@/components/gov/EmblemPlaceholder";
 import { useAuth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -63,18 +64,19 @@ function LoginForm() {
     <main className="flex min-h-screen items-center justify-center bg-surface px-6 py-12">
       <div className="w-full max-w-sm">
         <header className="mb-6 flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-lg bg-verified-wash">
-            <Landmark className="h-5 w-5 text-verified" />
-          </div>
+          <EmblemPlaceholder className="h-10 w-10 shrink-0 text-ink" />
           <div className="leading-tight">
-            <div className="text-[9px] uppercase tracking-[0.14em] text-ink-faint">
-              Digital India Land Records Modernization Programme
+            <div className="text-[9px] uppercase tracking-[0.14em] text-amber-500">
+              ग्रामीण विकास मंत्रालय · Ministry of Rural Development
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-base font-semibold">Bhu&#8209;Validate AI</span>
+              <span className="text-base font-semibold">भू-अभिलेख आधुनिकीकरण (DILRMP)</span>
               <span className="rounded-sm bg-panel-raised px-1.5 py-px font-id text-[10px] text-ink-muted">
                 SIH26018
               </span>
+            </div>
+            <div className="font-id text-[10px] text-ink-faint">
+              Bhu-Validate · prototype, not a live GoI service
             </div>
           </div>
         </header>

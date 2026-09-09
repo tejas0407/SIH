@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, Fingerprint, Lock, PenLine, ShieldCheck, X } from "lucide-react";
+import GovFooter from "@/components/gov/GovFooter";
 import { sqm, toNumber } from "@/lib/format";
 import type { Draft } from "./ReviewForm";
 import type { KhataDetail, ValidationFinding } from "@/lib/types";
@@ -89,7 +90,10 @@ export default function SignModal({
           onClick={(e) => e.stopPropagation()}
         >
           {sealHash ? (
-            <SealScreen hash={sealHash} khata={draft.khata_number} />
+            <>
+              <SealScreen hash={sealHash} khata={draft.khata_number} />
+              <GovFooter compact />
+            </>
           ) : (
             <>
               <header className="flex items-start justify-between gap-4 border-b border-rule px-5 py-4">
@@ -224,24 +228,25 @@ export default function SignModal({
                   </button>
                   <button
                     type="button"
-                    className="btn btn-approve h-9 text-xs"
+                    className="inline-flex h-9 items-center gap-2 rounded border border-emerald-900 bg-emerald-800 px-4 text-xs font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
                     disabled={submitting || blocked || needsReason}
                     onClick={() => onConfirm(reason.trim(), override)}
                   >
                     {submitting ? (
                       <>
                         <Fingerprint className="h-4 w-4 animate-pulse" />
-                        Generating seal…
+                        Generating SHA-256 seal…
                       </>
                     ) : (
                       <>
                         <PenLine className="h-4 w-4" />
-                        {override ? "Override & commit" : "Sign & commit"}
+                        {override ? "Override · e-Sign & Certify" : "e-Sign & Certify Title"}
                       </>
                     )}
                   </button>
                 </div>
               </footer>
+              <GovFooter compact />
             </>
           )}
         </motion.div>

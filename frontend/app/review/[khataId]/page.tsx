@@ -5,12 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
 import { AnimatePresence, motion } from "framer-motion";
-import ActionBar from "@/components/ActionBar";
+import AttestationFooter from "@/components/AttestationFooter";
 import DiscrepancyDrawer from "@/components/DiscrepancyDrawer";
 import DocumentViewer from "@/components/DocumentViewer";
 import MetricsBar from "@/components/MetricsBar";
 import ReviewForm, { type Draft, type Tab } from "@/components/ReviewForm";
-import ReviewHeader from "@/components/ReviewHeader";
+import GovBreadcrumb from "@/components/gov/GovBreadcrumb";
 import RejectModal from "@/components/RejectModal";
 import SignModal from "@/components/SignModal";
 import { fetchKhata, rejectKhata, verifyKhata } from "@/lib/api";
@@ -211,15 +211,15 @@ export default function ReviewPage() {
 
   if (isLoading || !draft || !record) {
     return (
-      <div className="flex h-screen items-center justify-center bg-surface text-sm text-ink-muted">
+      <div className="flex h-full items-center justify-center bg-surface text-sm text-ink-muted">
         {error ? (error as Error).message : "Opening the record…"}
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-surface text-ink">
-      <ReviewHeader record={record} blocking={liveBlocking} />
+    <div className="flex h-full flex-col overflow-hidden bg-surface text-ink">
+      <GovBreadcrumb record={record} blocking={liveBlocking} />
 
       <div className="flex min-h-0 flex-1">
         <section className="min-w-0 flex-[56]">
@@ -230,7 +230,7 @@ export default function ReviewPage() {
           <MetricsBar draft={draft} />
           <DiscrepancyDrawer findings={liveBlocking} draft={draft} onHighlight={handleHighlight} />
           <ReviewForm record={record} draft={draft} onChange={setDraft} tab={tab} onTabChange={setTab} />
-          <ActionBar
+          <AttestationFooter
             approvalStatus={record.approval_status}
             blockingCount={liveBlocking.length}
             role={role}

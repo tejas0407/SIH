@@ -32,14 +32,15 @@ const config: Config = {
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       fontSize: {
-        // Tightened scale: this is a dense console, not a landing page.
-        "2xs": ["11px", "15px"],
-        xs: ["12px", "17px"],
-        sm: ["13px", "19px"],
-        base: ["14px", "21px"],
-        lg: ["16px", "23px"],
-        xl: ["19px", "26px"],
-        "2xl": ["23px", "30px"],
+        // Tightened scale in rem so the GIGW A- / A / A+ control (which scales
+        // the root font-size) moves every label on the page, not just body copy.
+        "2xs": ["0.6875rem", "1.35"],
+        xs: ["0.75rem", "1.4"],
+        sm: ["0.8125rem", "1.45"],
+        base: ["0.875rem", "1.5"],
+        lg: ["1rem", "1.45"],
+        xl: ["1.1875rem", "1.4"],
+        "2xl": ["1.4375rem", "1.3"],
       },
       borderRadius: { DEFAULT: "4px", sm: "2px", md: "6px" },
     },

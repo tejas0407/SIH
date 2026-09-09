@@ -2,7 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Crosshair, FileText, History, Plus, ScrollText, Trash2 } from "lucide-react";
-import { BAND_COLOR, BAND_LABEL, band, pct } from "@/lib/format";
+import StampBadge, { type StampKind } from "@/components/gov/StampBadge";
+import { AREA_TOLERANCE, BAND_COLOR, BAND_LABEL, band, hectares, pct, toNumber } from "@/lib/format";
 import { useReviewStore } from "@/lib/store";
 import type { BBox, KhataDetail, RelationType, ValidationFinding } from "@/lib/types";
 
@@ -209,6 +210,15 @@ function MetadataTab({
 }
 
 /* ---------------------------------------------------------------- Parcels */
+const ROR_COLS = [
+  { hi: "क्र.सं.", en: "S.No." },
+  { hi: "खसरा संख्या", en: "Khasra / Survey No." },
+  { hi: "क्षेत्रफल (हे. / वर्ग मी.)", en: "Area in Ha / Sq.m" },
+  { hi: "भू-उपयोग", en: "Land Classification" },
+  { hi: "विशिष्ट पहचान", en: "ULPIN / Bhu-Aadhaar" },
+  { hi: "सत्यापन स्थिति", en: "Status" },
+];
+
 function ParcelsTab({
   draft,
   onChange,
@@ -220,6 +230,13 @@ function ParcelsTab({
 }) {
   const highlight = useReviewStore((s) => s.highlightIssues);
   const focusField = useReviewStore((s) => s.focusField);
+
+  const parcelSum = draft.parcels.reduce((t, p) => t + toNumber(p.plot_area_sqm), 0);
+  const declared = toNumber(draft.total_area_sqm);
+  const areaMismatch = Math.abs(parcelSum - declared) > AREA_TOLERANCE;
+  const settled =
+    record.approval_status === "MANUALLY_APPROVED" || record.approval_status === "AUTO_APPROVED";
+  const rowStamp: StampKind = areaMismatch ? "discrepancy" : settled ? "sealed" : "pending";
 
   const update = (index: number, patch: Partial<ParcelDraft>) =>
     onChange({
@@ -251,136 +268,200 @@ function ParcelsTab({
 
   return (
     <div className="space-y-3">
+      <div className="mb-1 flex items-baseline justify-between">
+        <h3 className="text-[10px] uppercase tracking-wide text-ink-faint">
+          खसरा विवरण / Record of Rights — Parcel ledger
+        </h3>
+        <span className="font-id text-2xs text-ink-faint">
+          Σ {parcelSum.toFixed(2)} m² ({hectares(parcelSum)} ha)
+        </span>
+      </div>
+
       {draft.parcels.length === 0 && (
         <Empty message="No parcels were read from this page. Add the first Khasra entry to start." />
       )}
 
-      {draft.parcels.map((parcel, index) => {
-        const level = band(minConf(parcel.confidence));
-        return (
-          <div
-            key={parcel.parcel_id ?? `new-${index}`}
-            className="rounded-md border bg-panel-raised p-3 transition-colors"
-            style={{
-              borderColor: highlight ? "var(--critical-border)" : "var(--rule)",
-              boxShadow: highlight ? "0 0 0 3px var(--critical-wash)" : "none",
-            }}
-          >
-            <div className="mb-2 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-ink-faint">Row {index + 1}</span>
-                <span
-                  className="rounded-sm border px-1.5 py-0.5 text-[10px] font-medium"
-                  style={{
-                    color: BAND_COLOR[level],
-                    borderColor: `color-mix(in srgb, ${BAND_COLOR[level]} 40%, transparent)`,
-                    background: `color-mix(in srgb, ${BAND_COLOR[level]} 12%, transparent)`,
-                  }}
-                >
-                  {pct(minConf(parcel.confidence), 0)}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  title="Centre this parcel on the scan"
-                  disabled={!parcel.bbox}
-                  onClick={() =>
-                    parcel.bbox &&
-                    focusField({
-                      key: `parcels.${index}.khasra_number`,
-                      bbox: parcel.bbox,
-                      confidence: minConf(parcel.confidence),
-                      label: `Khasra ${parcel.khasra_number}`,
-                    })
-                  }
-                  className="inline-flex items-center gap-1 rounded-sm border border-rule px-1.5 py-1 text-[10px] text-ink-muted hover:border-focus hover:text-focus disabled:opacity-40"
-                >
-                  <Crosshair className="h-3 w-3" />
-                  Locate
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  title="Remove parcel"
-                  className="rounded p-1 text-ink-faint hover:bg-critical-wash hover:text-critical"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
+      {draft.parcels.length > 0 && (
+        <div className="overflow-x-auto rounded-md border border-rule">
+          <table className="w-full min-w-[560px] border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-rule bg-panel-raised text-left align-bottom">
+                {ROR_COLS.map((c) => (
+                  <th key={c.en} className="px-2 py-1.5 font-medium">
+                    <span className="block font-vernacular text-[11px] text-ink-muted">{c.hi}</span>
+                    <span className="block text-[10px] font-normal text-ink-faint">{c.en}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {draft.parcels.map((parcel, index) => {
+                const level = band(minConf(parcel.confidence));
+                return (
+                  <tr
+                    key={parcel.parcel_id ?? `new-${index}`}
+                    className="border-b border-rule/60 align-top last:border-0"
+                    style={{
+                      background: highlight ? "var(--critical-wash)" : "transparent",
+                    }}
+                  >
+                    {/* 1 · S.No + row actions */}
+                    <td className="px-2 py-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="font-id text-ink-muted">{index + 1}</span>
+                      </div>
+                      <div className="mt-1 flex gap-0.5">
+                        <button
+                          type="button"
+                          title="Locate on scan"
+                          disabled={!parcel.bbox}
+                          onClick={() =>
+                            parcel.bbox &&
+                            focusField({
+                              key: `parcels.${index}.khasra_number`,
+                              bbox: parcel.bbox,
+                              confidence: minConf(parcel.confidence),
+                              label: `Khasra ${parcel.khasra_number}`,
+                            })
+                          }
+                          className="rounded-sm border border-rule p-0.5 text-ink-muted hover:border-focus hover:text-focus disabled:opacity-40"
+                        >
+                          <Crosshair className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Remove parcel"
+                          onClick={() => remove(index)}
+                          className="rounded-sm p-0.5 text-ink-faint hover:bg-critical-wash hover:text-critical"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </td>
 
-            <div className="grid grid-cols-2 gap-3">
-              <Field
-                label="Khasra number"
-                fieldKey={`parcels.${index}.khasra_number`}
-                bbox={parcel.bbox}
-                confidence={parcel.confidence.khasra_number}
-                value={parcel.khasra_number}
-                onValue={(x) => update(index, { khasra_number: x })}
-                mono
-              />
-              <div>
-                <label className="mb-1 block text-[11px] text-ink-faint">Land classification</label>
-                <select
-                  className="field text-sm"
-                  value={parcel.land_classification}
-                  onChange={(e) => update(index, { land_classification: e.target.value })}
-                >
-                  <option value="">Not recorded</option>
-                  {LAND_CLASSES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                  {parcel.land_classification &&
-                    !LAND_CLASSES.includes(parcel.land_classification) && (
-                      <option value={parcel.land_classification}>
-                        {parcel.land_classification}
-                      </option>
-                    )}
-                </select>
-              </div>
-              <Field
-                label="Area as printed"
-                fieldKey={`parcels.${index}.declared_area`}
-                bbox={parcel.bbox}
-                value={parcel.declared_area}
-                onValue={(x) => update(index, { declared_area: x })}
-                mono
-                suffix={parcel.declared_unit || draft.declared_unit || "unit"}
-              />
-              <Field
-                label="Standard area (m²)"
-                fieldKey={`parcels.${index}.plot_area_sqm`}
-                bbox={parcel.bbox}
-                confidence={parcel.confidence.plot_area_sqm}
-                value={parcel.plot_area_sqm}
-                onValue={(x) => update(index, { plot_area_sqm: x })}
-                mono
-              />
-            </div>
+                    {/* 2 · Khasra number */}
+                    <td className="px-2 py-1.5">
+                      <CellInput
+                        value={parcel.khasra_number}
+                        onValue={(x) => update(index, { khasra_number: x })}
+                        mono
+                        onFocus={() =>
+                          parcel.bbox &&
+                          focusField({
+                            key: `parcels.${index}.khasra_number`,
+                            bbox: parcel.bbox,
+                            confidence: parcel.confidence.khasra_number,
+                            label: `Khasra ${parcel.khasra_number}`,
+                          })
+                        }
+                      />
+                      <span
+                        className="mt-0.5 block text-[9px]"
+                        style={{ color: BAND_COLOR[level] }}
+                      >
+                        {pct(minConf(parcel.confidence), 0)} conf.
+                      </span>
+                    </td>
 
-            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-ink-faint">
-              <span>ULPIN</span>
-              <span className="font-id text-ink-muted">
-                {parcel.ulpin ?? "assigned once the parcel is surveyed"}
-              </span>
-            </div>
-          </div>
-        );
-      })}
+                    {/* 3 · Area */}
+                    <td className="px-2 py-1.5">
+                      <CellInput
+                        value={parcel.plot_area_sqm}
+                        onValue={(x) => update(index, { plot_area_sqm: x })}
+                        mono
+                        suffix="m²"
+                      />
+                      <span className="mt-0.5 block font-id text-[9px] text-ink-faint">
+                        ≈ {hectares(parcel.plot_area_sqm)} ha
+                      </span>
+                    </td>
+
+                    {/* 4 · Land classification */}
+                    <td className="px-2 py-1.5">
+                      <select
+                        className="w-full rounded-sm border border-rule bg-panel-raised px-1 py-1 text-[11px]"
+                        value={parcel.land_classification}
+                        onChange={(e) => update(index, { land_classification: e.target.value })}
+                      >
+                        <option value="">—</option>
+                        {LAND_CLASSES.map((c) => (
+                          <option key={c.en} value={c.en}>
+                            {c.hi} / {c.en}
+                          </option>
+                        ))}
+                        {parcel.land_classification &&
+                          !LAND_CLASSES.some((c) => c.en === parcel.land_classification) && (
+                            <option value={parcel.land_classification}>
+                              {parcel.land_classification}
+                            </option>
+                          )}
+                      </select>
+                    </td>
+
+                    {/* 5 · ULPIN */}
+                    <td className="px-2 py-1.5">
+                      <span className="font-id text-[10px] text-ink-muted">
+                        {parcel.ulpin ?? "—"}
+                      </span>
+                      {!parcel.ulpin && (
+                        <span className="block text-[9px] text-ink-faint">on survey</span>
+                      )}
+                    </td>
+
+                    {/* 6 · Status */}
+                    <td className="px-2 py-1.5">
+                      <StampBadge kind={rowStamp} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <button type="button" onClick={add} className="btn h-9 w-full text-xs">
         <Plus className="h-4 w-4" />
-        Add a parcel
+        नया खसरा जोड़ें / Add a parcel
       </button>
 
       {record.parcels.length > 0 && (
         <p className="text-[11px] text-ink-faint">
-          Focusing any field, or pressing <span className="text-ink-muted">Locate</span>, brings its
-          position on the scan into view.
+          Focusing a cell, or the <span className="text-ink-muted">crosshair</span>, brings the
+          parcel&rsquo;s position on the scan into view.
         </p>
+      )}
+    </div>
+  );
+}
+
+function CellInput({
+  value,
+  onValue,
+  mono,
+  suffix,
+  onFocus,
+}: {
+  value: string;
+  onValue: (v: string) => void;
+  mono?: boolean;
+  suffix?: string;
+  onFocus?: () => void;
+}) {
+  return (
+    <div className="relative">
+      <input
+        className={`w-full rounded-sm border border-rule bg-panel-raised px-1.5 py-1 text-[11px] focus:border-focus focus:outline-none ${
+          mono ? "font-id" : ""
+        } ${suffix ? "pr-7" : ""}`}
+        value={value}
+        onChange={(e) => onValue(e.target.value)}
+        onFocus={onFocus}
+      />
+      {suffix && (
+        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 font-id text-[9px] text-ink-faint">
+          {suffix}
+        </span>
       )}
     </div>
   );
@@ -622,14 +703,14 @@ function NotesTab({ record }: { record: KhataDetail }) {
 }
 
 /* ------------------------------------------------------------------ shared */
-const LAND_CLASSES = [
-  "Agricultural",
-  "Abadi",
-  "Irrigated",
-  "Unirrigated",
-  "Orchard",
-  "Dry crop",
-  "Barren",
+const LAND_CLASSES: { hi: string; en: string }[] = [
+  { hi: "कृषि", en: "Agricultural" },
+  { hi: "गैर-कृषि / आबादी", en: "Abadi" },
+  { hi: "सिंचित", en: "Irrigated" },
+  { hi: "असिंचित", en: "Unirrigated" },
+  { hi: "बाग", en: "Orchard" },
+  { hi: "शुष्क फसल", en: "Dry crop" },
+  { hi: "बंजर", en: "Barren" },
 ];
 
 function minConf(map: Record<string, number>): number {

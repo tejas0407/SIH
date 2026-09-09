@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MapPinned, X, XCircle } from "lucide-react";
+import GovFooter from "@/components/gov/GovFooter";
 
 interface Props {
   open: boolean;
@@ -109,6 +110,7 @@ export default function RejectModal({ open, mode, busy, onClose, onConfirm }: Pr
                 {busy ? "Submitting…" : copy.cta}
               </button>
             </footer>
+            <GovFooter compact />
           </motion.div>
         </motion.div>
       )}

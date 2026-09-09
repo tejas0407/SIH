@@ -138,6 +138,8 @@ export default function DocumentViewer({ imageUrl, boxes }: Props) {
           </div>
         )}
 
+        {imageUrl && <Watermark />}
+
         {imageUrl && (
           <div
             className="absolute left-0 top-0 origin-top-left"
@@ -180,7 +182,7 @@ export default function DocumentViewer({ imageUrl, boxes }: Props) {
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between p-3">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between p-3">
           <div className="pointer-events-auto flex items-center gap-1 rounded bg-black/55 p-1 backdrop-blur">
             <IconButton label="Zoom out" onClick={() => zoomAt(1 / 1.25)}>
               <Minus className="h-4 w-4" />
@@ -210,6 +212,41 @@ export default function DocumentViewer({ imageUrl, boxes }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+/** Diagonal, non-interactive "official record" watermark fixed to the viewport
+ *  (it does not pan or zoom with the scan), as on a physical revenue record. */
+function Watermark() {
+  return (
+    <svg
+      className="pointer-events-none absolute inset-0 z-10 h-full w-full select-none"
+      aria-hidden
+    >
+      <defs>
+        <pattern
+          id="ror-watermark"
+          width="620"
+          height="200"
+          patternUnits="userSpaceOnUse"
+          patternTransform="rotate(-30)"
+        >
+          <text
+            x="0"
+            y="100"
+            fill="#ffffff"
+            fillOpacity="0.045"
+            fontSize="20"
+            fontFamily="Inter, system-ui, sans-serif"
+            fontWeight="700"
+            letterSpacing="3"
+          >
+            GOVERNMENT OF INDIA · OFFICIAL REVENUE RECORD · CONFIDENTIAL REVIEW
+          </text>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#ror-watermark)" />
+    </svg>
   );
 }
 
