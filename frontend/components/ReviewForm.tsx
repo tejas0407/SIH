@@ -1,7 +1,8 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
-import { BAND_LABEL, band, pct } from "@/lib/format";
+import { AnimatePresence, motion } from "framer-motion";
+import { Crosshair, FileText, History, Plus, ScrollText, Trash2 } from "lucide-react";
+import { BAND_COLOR, BAND_LABEL, band, pct } from "@/lib/format";
 import { useReviewStore } from "@/lib/store";
 import type { BBox, KhataDetail, RelationType, ValidationFinding } from "@/lib/types";
 
@@ -9,6 +10,8 @@ export interface ParcelDraft {
   parcel_id: string | null;
   khasra_number: string;
   plot_area_sqm: string;
+  declared_area: string;
+  declared_unit: string;
   land_classification: string;
   ulpin: string | null;
   bbox: BBox | null;
@@ -35,7 +38,7 @@ export interface Draft {
   owners: OwnerDraft[];
 }
 
-export type Tab = "khata" | "parcels" | "owners" | "history";
+export type Tab = "metadata" | "parcels" | "owners" | "notes";
 
 interface Props {
   record: KhataDetail;
@@ -45,11 +48,11 @@ interface Props {
   onTabChange: (tab: Tab) => void;
 }
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "khata", label: "Khata" },
-  { id: "parcels", label: "Parcels" },
-  { id: "owners", label: "Owners" },
-  { id: "history", label: "History" },
+const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
+  { id: "metadata", label: "Metadata", icon: FileText },
+  { id: "parcels", label: "Parcels", icon: ScrollText },
+  { id: "owners", label: "Ownership", icon: History },
+  { id: "notes", label: "Marginal notes", icon: ScrollText },
 ];
 
 export default function ReviewForm({ record, draft, onChange, tab, onTabChange }: Props) {
@@ -59,47 +62,69 @@ export default function ReviewForm({ record, draft, onChange, tab, onTabChange }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div role="tablist" className="flex shrink-0 border-b border-rule bg-panel">
-        {TABS.map(({ id, label }) => {
+        {TABS.map(({ id, label, icon: Icon }) => {
           const count =
             id === "parcels"
               ? draft.parcels.length
               : id === "owners"
                 ? draft.owners.length
-                : id === "history"
+                : id === "notes"
                   ? record.audit_trail.length
                   : 0;
+          const active = tab === id;
           return (
             <button
               key={id}
               role="tab"
-              aria-selected={tab === id}
+              aria-selected={active}
               onClick={() => onTabChange(id)}
-              className={`relative px-4 py-2.5 text-sm transition-colors ${
-                tab === id ? "text-ink" : "text-ink-muted hover:text-ink"
+              className={`relative flex items-center gap-1.5 px-3.5 py-2.5 text-xs transition-colors ${
+                active ? "text-ink" : "text-ink-faint hover:text-ink-muted"
               }`}
             >
+              <Icon className="h-3.5 w-3.5" />
               {label}
-              {count > 0 && <span className="ml-1.5 text-2xs text-ink-muted tabular">{count}</span>}
-              {tab === id && <span className="absolute inset-x-0 -bottom-px h-0.5 bg-ink" />}
+              {count > 0 && (
+                <span className="rounded-sm bg-panel-raised px-1 py-px font-id text-[10px] text-ink-muted">
+                  {count}
+                </span>
+              )}
+              {active && (
+                <motion.span
+                  layoutId="tab-underline"
+                  className="absolute inset-x-0 -bottom-px h-0.5 bg-ink"
+                />
+              )}
             </button>
           );
         })}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
-        {tab === "khata" && (
-          <KhataTab record={record} draft={draft} onChange={onChange} findingsFor={findingsFor} />
-        )}
-        {tab === "parcels" && <ParcelsTab draft={draft} onChange={onChange} record={record} />}
-        {tab === "owners" && <OwnersTab draft={draft} onChange={onChange} />}
-        {tab === "history" && <HistoryTab record={record} />}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.14 }}
+            className="p-4"
+          >
+            {tab === "metadata" && (
+              <MetadataTab record={record} draft={draft} onChange={onChange} findingsFor={findingsFor} />
+            )}
+            {tab === "parcels" && <ParcelsTab draft={draft} onChange={onChange} record={record} />}
+            {tab === "owners" && <OwnersTab draft={draft} onChange={onChange} />}
+            {tab === "notes" && <NotesTab record={record} />}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ Khata */
-function KhataTab({
+/* ------------------------------------------------------------------ Metadata */
+function MetadataTab({
   record,
   draft,
   onChange,
@@ -110,97 +135,75 @@ function KhataTab({
   onChange: (d: Draft) => void;
   findingsFor: (p: string) => ValidationFinding[];
 }) {
-  const village = record.village;
+  const v = record.village;
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <Field
-          label="Khata number"
-          fieldKey="khata.khata_number"
-          bbox={null}
-          confidence={record.confidence.ocr_confidence}
-          value={draft.khata_number}
-          onValue={(v) => onChange({ ...draft, khata_number: v })}
-          mono
-        />
-        <Field
-          label="Fasli year"
-          fieldKey="khata.fasli_year"
-          bbox={null}
-          value={draft.fasli_year}
-          onValue={(v) => onChange({ ...draft, fasli_year: v })}
-          mono
-        />
-        <Field
-          label="Total area recorded (m²)"
-          fieldKey="khata.total_area_sqm"
-          bbox={null}
-          confidence={record.confidence.ocr_confidence}
-          value={draft.total_area_sqm}
-          onValue={(v) => onChange({ ...draft, total_area_sqm: v })}
-          mono
-          hint={findingsFor("khata.total_area_sqm")[0]?.message}
-        />
-        <Field
-          label="Unit as printed"
-          fieldKey="khata.declared_unit"
-          bbox={null}
-          value={draft.declared_unit}
-          onValue={(v) => onChange({ ...draft, declared_unit: v })}
-        />
-      </div>
+      <Section title="Location">
+        <div className="grid grid-cols-2 gap-3">
+          <ReadOnly label="State" value={v?.state ?? "—"} />
+          <ReadOnly label="District" value={v?.district ?? "—"} />
+          <ReadOnly label="Tehsil" value={v?.tehsil ?? "—"} />
+          <ReadOnly label="Village code" value={v?.village_code ?? "—"} mono />
+        </div>
+      </Section>
 
-      {village && (
-        <dl className="rounded border border-rule bg-panel p-3 text-sm">
-          <Row label="Village" value={`${village.village_name} (${village.village_code})`} />
-          <Row label="Tehsil" value={village.tehsil} />
-          <Row label="District" value={`${village.district}, ${village.state}`} />
-        </dl>
-      )}
+      <Section title="Record identity">
+        <div className="grid grid-cols-2 gap-3">
+          <Field
+            label="Khata number"
+            fieldKey="khata.khata_number"
+            bbox={null}
+            confidence={record.confidence.ocr_confidence}
+            value={draft.khata_number}
+            onValue={(x) => onChange({ ...draft, khata_number: x })}
+            mono
+          />
+          <Field
+            label="Fasli year"
+            fieldKey="khata.fasli_year"
+            bbox={null}
+            value={draft.fasli_year}
+            onValue={(x) => onChange({ ...draft, fasli_year: x })}
+            mono
+          />
+          <Field
+            label="Total area recorded (m²)"
+            fieldKey="khata.total_area_sqm"
+            bbox={null}
+            confidence={record.confidence.ocr_confidence}
+            value={draft.total_area_sqm}
+            onValue={(x) => onChange({ ...draft, total_area_sqm: x })}
+            mono
+            hint={findingsFor("khata.total_area_sqm")[0]?.message}
+          />
+          <Field
+            label="Unit as printed"
+            fieldKey="khata.declared_unit"
+            bbox={null}
+            value={draft.declared_unit}
+            onValue={(x) => onChange({ ...draft, declared_unit: x })}
+          />
+        </div>
+      </Section>
 
-      <div className="rounded border border-rule bg-panel p-3">
-        <div className="mb-2 text-sm text-ink-muted">How the confidence score was reached</div>
+      <Section title="How the composite score was reached">
         <ConfidenceBar label="Text read from the scan" weight={0.5} value={record.confidence.ocr_confidence} />
         <ConfidenceBar label="Page structure found" weight={0.3} value={record.confidence.layout_confidence} />
-        <ConfidenceBar label="Arithmetic checks passed" weight={0.2} value={record.confidence.math_checks_pass} />
+        <ConfidenceBar
+          label="Arithmetic checks passed"
+          weight={0.2}
+          value={record.confidence.math_checks_pass}
+        />
         <div className="mt-2 flex items-baseline justify-between border-t border-rule pt-2">
-          <span className="text-sm">Combined</span>
+          <span className="text-sm">C_total</span>
           <span className="font-id text-lg">{pct(record.confidence.total_confidence)}</span>
         </div>
-        <p className="mt-1 text-xs text-ink-muted">
-          Records at or above {pct(record.confidence.threshold, 0)} with no failed rule commit
+        <p className="mt-1 text-[11px] text-ink-faint">
+          Records at or above {pct(record.confidence.threshold, 0)} with no failed invariant commit
           without a reviewer.
         </p>
-      </div>
-    </div>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4 py-0.5">
-      <dt className="text-ink-muted">{label}</dt>
-      <dd className="text-right">{value}</dd>
-    </div>
-  );
-}
-
-function ConfidenceBar({ label, weight, value }: { label: string; weight: number; value: number }) {
-  return (
-    <div className="mb-2">
-      <div className="mb-1 flex justify-between text-xs">
-        <span className="text-ink-muted">
-          {label} <span className="tabular">×{weight}</span>
-        </span>
-        <span className="font-id">{pct(value)}</span>
-      </div>
-      <div className="h-1.5 rounded-sm bg-surface">
-        <div
-          className="h-full rounded-sm"
-          style={{ width: `${Math.max(value * 100, 1)}%`, background: "var(--ink-muted)" }}
-        />
-      </div>
+      </Section>
     </div>
   );
 }
@@ -215,10 +218,14 @@ function ParcelsTab({
   onChange: (d: Draft) => void;
   record: KhataDetail;
 }) {
-  const update = (index: number, patch: Partial<ParcelDraft>) => {
-    const parcels = draft.parcels.map((p, i) => (i === index ? { ...p, ...patch } : p));
-    onChange({ ...draft, parcels });
-  };
+  const highlight = useReviewStore((s) => s.highlightIssues);
+  const focusField = useReviewStore((s) => s.focusField);
+
+  const update = (index: number, patch: Partial<ParcelDraft>) =>
+    onChange({
+      ...draft,
+      parcels: draft.parcels.map((p, i) => (i === index ? { ...p, ...patch } : p)),
+    });
 
   const add = () =>
     onChange({
@@ -229,6 +236,8 @@ function ParcelsTab({
           parcel_id: null,
           khasra_number: "",
           plot_area_sqm: "0",
+          declared_area: "",
+          declared_unit: draft.declared_unit,
           land_classification: "",
           ulpin: null,
           bbox: null,
@@ -246,64 +255,131 @@ function ParcelsTab({
         <Empty message="No parcels were read from this page. Add the first Khasra entry to start." />
       )}
 
-      {draft.parcels.map((parcel, index) => (
-        <div key={parcel.parcel_id ?? `new-${index}`} className="rounded border border-rule bg-panel p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs text-ink-muted">Row {index + 1}</span>
-            <button
-              type="button"
-              onClick={() => remove(index)}
-              title="Remove this parcel"
-              className="rounded p-1 text-ink-muted transition-colors hover:bg-critical-wash hover:text-critical"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Field
-              label="Khasra number"
-              fieldKey={`parcels.${index}.khasra_number`}
-              bbox={parcel.bbox}
-              confidence={parcel.confidence.khasra_number}
-              value={parcel.khasra_number}
-              onValue={(v) => update(index, { khasra_number: v })}
-              mono
-            />
-            <Field
-              label="Plot area (m²)"
-              fieldKey={`parcels.${index}.plot_area_sqm`}
-              bbox={parcel.bbox}
-              confidence={parcel.confidence.plot_area_sqm}
-              value={parcel.plot_area_sqm}
-              onValue={(v) => update(index, { plot_area_sqm: v })}
-              mono
-            />
-            <Field
-              label="Land classification"
-              fieldKey={`parcels.${index}.land_classification`}
-              bbox={parcel.bbox}
-              value={parcel.land_classification}
-              onValue={(v) => update(index, { land_classification: v })}
-            />
-            <div>
-              <div className="mb-1 text-xs text-ink-muted">Bhu-Aadhaar (ULPIN)</div>
-              <div className="field font-id text-xs text-ink-muted">
-                {parcel.ulpin ?? "Assigned once the parcel is surveyed"}
+      {draft.parcels.map((parcel, index) => {
+        const level = band(minConf(parcel.confidence));
+        return (
+          <div
+            key={parcel.parcel_id ?? `new-${index}`}
+            className="rounded-md border bg-panel-raised p-3 transition-colors"
+            style={{
+              borderColor: highlight ? "var(--critical-border)" : "var(--rule)",
+              boxShadow: highlight ? "0 0 0 3px var(--critical-wash)" : "none",
+            }}
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-ink-faint">Row {index + 1}</span>
+                <span
+                  className="rounded-sm border px-1.5 py-0.5 text-[10px] font-medium"
+                  style={{
+                    color: BAND_COLOR[level],
+                    borderColor: `color-mix(in srgb, ${BAND_COLOR[level]} 40%, transparent)`,
+                    background: `color-mix(in srgb, ${BAND_COLOR[level]} 12%, transparent)`,
+                  }}
+                >
+                  {pct(minConf(parcel.confidence), 0)}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  title="Centre this parcel on the scan"
+                  disabled={!parcel.bbox}
+                  onClick={() =>
+                    parcel.bbox &&
+                    focusField({
+                      key: `parcels.${index}.khasra_number`,
+                      bbox: parcel.bbox,
+                      confidence: minConf(parcel.confidence),
+                      label: `Khasra ${parcel.khasra_number}`,
+                    })
+                  }
+                  className="inline-flex items-center gap-1 rounded-sm border border-rule px-1.5 py-1 text-[10px] text-ink-muted hover:border-focus hover:text-focus disabled:opacity-40"
+                >
+                  <Crosshair className="h-3 w-3" />
+                  Locate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove(index)}
+                  title="Remove parcel"
+                  className="rounded p-1 text-ink-faint hover:bg-critical-wash hover:text-critical"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
-          </div>
-        </div>
-      ))}
 
-      <button type="button" onClick={add} className="btn w-full justify-center">
+            <div className="grid grid-cols-2 gap-3">
+              <Field
+                label="Khasra number"
+                fieldKey={`parcels.${index}.khasra_number`}
+                bbox={parcel.bbox}
+                confidence={parcel.confidence.khasra_number}
+                value={parcel.khasra_number}
+                onValue={(x) => update(index, { khasra_number: x })}
+                mono
+              />
+              <div>
+                <label className="mb-1 block text-[11px] text-ink-faint">Land classification</label>
+                <select
+                  className="field text-sm"
+                  value={parcel.land_classification}
+                  onChange={(e) => update(index, { land_classification: e.target.value })}
+                >
+                  <option value="">Not recorded</option>
+                  {LAND_CLASSES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                  {parcel.land_classification &&
+                    !LAND_CLASSES.includes(parcel.land_classification) && (
+                      <option value={parcel.land_classification}>
+                        {parcel.land_classification}
+                      </option>
+                    )}
+                </select>
+              </div>
+              <Field
+                label="Area as printed"
+                fieldKey={`parcels.${index}.declared_area`}
+                bbox={parcel.bbox}
+                value={parcel.declared_area}
+                onValue={(x) => update(index, { declared_area: x })}
+                mono
+                suffix={parcel.declared_unit || draft.declared_unit || "unit"}
+              />
+              <Field
+                label="Standard area (m²)"
+                fieldKey={`parcels.${index}.plot_area_sqm`}
+                bbox={parcel.bbox}
+                confidence={parcel.confidence.plot_area_sqm}
+                value={parcel.plot_area_sqm}
+                onValue={(x) => update(index, { plot_area_sqm: x })}
+                mono
+              />
+            </div>
+
+            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-ink-faint">
+              <span>ULPIN</span>
+              <span className="font-id text-ink-muted">
+                {parcel.ulpin ?? "assigned once the parcel is surveyed"}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+
+      <button type="button" onClick={add} className="btn h-9 w-full text-xs">
         <Plus className="h-4 w-4" />
         Add a parcel
       </button>
 
       {record.parcels.length > 0 && (
-        <p className="text-xs text-ink-muted">
-          Focus any field to bring its position on the scan into view.
+        <p className="text-[11px] text-ink-faint">
+          Focusing any field, or pressing <span className="text-ink-muted">Locate</span>, brings its
+          position on the scan into view.
         </p>
       )}
     </div>
@@ -312,10 +388,14 @@ function ParcelsTab({
 
 /* ----------------------------------------------------------------- Owners */
 function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => void }) {
-  const update = (index: number, patch: Partial<OwnerDraft>) => {
-    const owners = draft.owners.map((o, i) => (i === index ? { ...o, ...patch } : o));
-    onChange({ ...draft, owners });
-  };
+  const highlight = useReviewStore((s) => s.highlightIssues);
+  const focusField = useReviewStore((s) => s.focusField);
+
+  const update = (index: number, patch: Partial<OwnerDraft>) =>
+    onChange({
+      ...draft,
+      owners: draft.owners.map((o, i) => (i === index ? { ...o, ...patch } : o)),
+    });
 
   const add = () =>
     onChange({
@@ -336,16 +416,16 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
     });
 
   const splitEvenly = () => {
-    const count = draft.owners.length;
-    if (!count) return;
-    const each = Math.floor((10000 / count)) / 100;
-    const owners = draft.owners.map((owner, index) => ({
-      ...owner,
-      // The remainder goes to the first owner so the shares close at exactly
-      // 100% rather than 99.99% — which the validator would reject.
-      share_percentage: (index === 0 ? +(100 - each * (count - 1)).toFixed(2) : each).toFixed(2),
-    }));
-    onChange({ ...draft, owners });
+    const n = draft.owners.length;
+    if (!n) return;
+    const each = Math.floor(10000 / n) / 100;
+    onChange({
+      ...draft,
+      owners: draft.owners.map((o, i) => ({
+        ...o,
+        share_percentage: (i === 0 ? +(100 - each * (n - 1)).toFixed(2) : each).toFixed(2),
+      })),
+    });
   };
 
   return (
@@ -355,17 +435,46 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
       )}
 
       {draft.owners.map((owner, index) => (
-        <div key={owner.owner_id ?? `new-${index}`} className="rounded border border-rule bg-panel p-3">
+        <div
+          key={owner.owner_id ?? `new-${index}`}
+          className="rounded-md border bg-panel-raised p-3"
+          style={{
+            borderColor: highlight ? "var(--critical-border)" : "var(--rule)",
+            boxShadow: highlight ? "0 0 0 3px var(--critical-wash)" : "none",
+          }}
+        >
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs text-ink-muted">Owner {index + 1}</span>
-            <button
-              type="button"
-              onClick={() => onChange({ ...draft, owners: draft.owners.filter((_, i) => i !== index) })}
-              title="Remove this owner"
-              className="rounded p-1 text-ink-muted transition-colors hover:bg-critical-wash hover:text-critical"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            <span className="text-[11px] text-ink-faint">Co-owner {index + 1}</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                title="Centre this owner on the scan"
+                disabled={!owner.bbox}
+                onClick={() =>
+                  owner.bbox &&
+                  focusField({
+                    key: `owners.${index}.owner_name_vernacular`,
+                    bbox: owner.bbox,
+                    confidence: minConf(owner.confidence),
+                    label: owner.owner_name_en || owner.owner_name_vernacular,
+                  })
+                }
+                className="inline-flex items-center gap-1 rounded-sm border border-rule px-1.5 py-1 text-[10px] text-ink-muted hover:border-focus hover:text-focus disabled:opacity-40"
+              >
+                <Crosshair className="h-3 w-3" />
+                Locate
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onChange({ ...draft, owners: draft.owners.filter((_, i) => i !== index) })
+                }
+                title="Remove owner"
+                className="rounded p-1 text-ink-faint hover:bg-critical-wash hover:text-critical"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -375,7 +484,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
               bbox={owner.bbox}
               confidence={owner.confidence.owner_name_vernacular}
               value={owner.owner_name_vernacular}
-              onValue={(v) => update(index, { owner_name_vernacular: v })}
+              onValue={(x) => update(index, { owner_name_vernacular: x })}
               vernacular
             />
             <Field
@@ -383,12 +492,12 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
               fieldKey={`owners.${index}.owner_name_en`}
               bbox={owner.bbox}
               value={owner.owner_name_en}
-              onValue={(v) => update(index, { owner_name_en: v })}
+              onValue={(x) => update(index, { owner_name_en: x })}
             />
             <div>
-              <label className="mb-1 block text-xs text-ink-muted">Relation</label>
+              <label className="mb-1 block text-[11px] text-ink-faint">Relation</label>
               <select
-                className="field"
+                className="field text-sm"
                 value={owner.relation_type}
                 onChange={(e) => update(index, { relation_type: e.target.value as RelationType })}
               >
@@ -404,7 +513,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
               fieldKey={`owners.${index}.relative_name`}
               bbox={owner.bbox}
               value={owner.relative_name}
-              onValue={(v) => update(index, { relative_name: v })}
+              onValue={(x) => update(index, { relative_name: x })}
               vernacular
             />
             <Field
@@ -413,67 +522,160 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
               bbox={owner.bbox}
               confidence={owner.confidence.share_percentage}
               value={owner.share_percentage}
-              onValue={(v) => update(index, { share_percentage: v })}
+              onValue={(x) => update(index, { share_percentage: x })}
               mono
             />
+            <div>
+              <label className="mb-1 block text-[11px] text-ink-faint">Aadhaar (hashed on save)</label>
+              <input
+                className="field font-id text-sm"
+                inputMode="numeric"
+                placeholder="•••• •••• ••••"
+                defaultValue=""
+                disabled
+                title="Aadhaar is never stored raw — a salted SHA-256 digest is written on verify"
+              />
+            </div>
           </div>
         </div>
       ))}
 
       <div className="flex gap-2">
-        <button type="button" onClick={add} className="btn flex-1 justify-center">
+        <button type="button" onClick={add} className="btn h-9 flex-1 text-xs">
           <Plus className="h-4 w-4" />
-          Add an owner
+          Add a co-owner
         </button>
         <button
           type="button"
           onClick={splitEvenly}
           disabled={draft.owners.length === 0}
-          className="btn"
+          className="btn h-9 text-xs"
           title="Set every share to an equal fraction of the holding"
         >
-          Split shares evenly
+          Split evenly
         </button>
       </div>
     </div>
   );
 }
 
-/* ---------------------------------------------------------------- History */
-function HistoryTab({ record }: { record: KhataDetail }) {
-  if (record.audit_trail.length === 0) {
-    return <Empty message="Nothing has been changed on this record yet." />;
-  }
-
+/* ---------------------------------------------------------------- Notes */
+function NotesTab({ record }: { record: KhataDetail }) {
   return (
-    <ol className="space-y-2">
-      {record.audit_trail.map((entry) => (
-        <li key={entry.log_id} className="rounded border border-rule bg-panel p-3 text-sm">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="font-id text-xs">{entry.field_name}</span>
-            <span className="text-2xs text-ink-muted">
-              {entry.modified_by_user_id} · {entry.role}
-            </span>
-          </div>
-          <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
-            <span className="rounded-sm bg-critical-wash px-1.5 py-0.5 font-id text-xs line-through">
-              {entry.raw_extracted_value ?? "empty"}
-            </span>
-            <span className="rounded-sm bg-verified-wash px-1.5 py-0.5 font-id text-xs">
-              {entry.corrected_value ?? "removed"}
-            </span>
-          </div>
-          {entry.reason && <p className="mt-1.5 text-xs text-ink-muted">{entry.reason}</p>}
-          <p className="mt-1 font-id text-2xs text-ink-muted">
-            {new Date(entry.timestamp).toLocaleString("en-IN")} · {entry.entry_hash.slice(0, 16)}…
+    <div className="space-y-5">
+      <Section title="Patwari marginal remarks">
+        <div className="rounded-md border border-dashed border-rule-strong p-5 text-center">
+          <ScrollText className="mx-auto mb-2 h-6 w-6 text-ink-faint" />
+          <p className="text-sm text-ink-muted">No marginal remarks were transcribed for this record.</p>
+          <p className="mx-auto mt-1 max-w-sm text-[11px] leading-relaxed text-ink-faint">
+            When the Patwari&rsquo;s margin column carries a handwritten mutation note, the TrOCR
+            handwriting engine transcribes it here with a confidence badge and a cropped image of the
+            original strokes, side by side, for verification.
           </p>
-        </li>
-      ))}
-    </ol>
+        </div>
+      </Section>
+
+      <Section title={`Correction history · ${record.audit_trail.length}`}>
+        {record.audit_trail.length === 0 ? (
+          <Empty message="Nothing has been changed on this record yet. Every field you edit will be written to the hash-chained ledger on verify." />
+        ) : (
+          <ol className="space-y-2">
+            {record.audit_trail.map((entry) => (
+              <li
+                key={entry.log_id}
+                className="rounded-md border border-rule bg-panel-raised p-3 text-sm"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="font-id text-xs text-ink-muted">{entry.field_name}</span>
+                  <span className="text-[10px] text-ink-faint">
+                    {entry.modified_by_user_id} · {entry.role}
+                  </span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
+                  <span
+                    className="rounded-sm px-1.5 py-0.5 font-id text-xs line-through"
+                    style={{ background: "var(--critical-wash)", color: "var(--critical)" }}
+                  >
+                    {entry.raw_extracted_value ?? "empty"}
+                  </span>
+                  <span
+                    className="rounded-sm px-1.5 py-0.5 font-id text-xs"
+                    style={{ background: "var(--verified-wash)", color: "var(--verified)" }}
+                  >
+                    {entry.corrected_value ?? "removed"}
+                  </span>
+                </div>
+                {entry.reason && (
+                  <p className="mt-1.5 text-[11px] text-ink-faint">{entry.reason}</p>
+                )}
+                <p className="mt-1 font-id text-[10px] text-ink-faint">
+                  {new Date(entry.timestamp).toLocaleString("en-IN")} ·{" "}
+                  {entry.entry_hash.slice(0, 16)}…
+                </p>
+              </li>
+            ))}
+          </ol>
+        )}
+      </Section>
+    </div>
   );
 }
 
-/* ------------------------------------------------------------------ Field */
+/* ------------------------------------------------------------------ shared */
+const LAND_CLASSES = [
+  "Agricultural",
+  "Abadi",
+  "Irrigated",
+  "Unirrigated",
+  "Orchard",
+  "Dry crop",
+  "Barren",
+];
+
+function minConf(map: Record<string, number>): number {
+  const values = Object.values(map ?? {});
+  return values.length ? Math.min(...values) : 1;
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-md border border-rule bg-panel p-3">
+      <h3 className="mb-2.5 text-[10px] uppercase tracking-wide text-ink-faint">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function ReadOnly({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <div className="mb-1 text-[11px] text-ink-faint">{label}</div>
+      <div className={`rounded border border-rule bg-panel-raised px-2.5 py-1.5 text-sm ${mono ? "font-id" : ""}`}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ConfidenceBar({ label, weight, value }: { label: string; weight: number; value: number }) {
+  return (
+    <div className="mb-2">
+      <div className="mb-1 flex justify-between text-[11px]">
+        <span className="text-ink-faint">
+          {label} <span className="tabular">×{weight}</span>
+        </span>
+        <span className="font-id text-ink-muted">{pct(value)}</span>
+      </div>
+      <div className="h-1.5 rounded-sm bg-panel-raised">
+        <div
+          className="h-full rounded-sm"
+          style={{ width: `${Math.max(value * 100, 1)}%`, background: BAND_COLOR[band(value)] }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function Field({
   label,
   fieldKey,
@@ -484,6 +686,7 @@ function Field({
   mono,
   vernacular,
   hint,
+  suffix,
 }: {
   label: string;
   fieldKey: string;
@@ -494,43 +697,51 @@ function Field({
   mono?: boolean;
   vernacular?: boolean;
   hint?: string;
+  suffix?: string;
 }) {
   const focusField = useReviewStore((s) => s.focusField);
   const hoverField = useReviewStore((s) => s.hoverField);
   const level = confidence === undefined ? undefined : band(confidence);
 
-  const focus = () => {
-    if (bbox) focusField({ key: fieldKey, bbox, confidence, label });
-  };
-
   return (
     <div>
-      <label className="mb-1 flex items-baseline justify-between gap-2 text-xs">
-        <span className="text-ink-muted">{label}</span>
+      <label className="mb-1 flex items-baseline justify-between gap-2 text-[11px]">
+        <span className="text-ink-faint">{label}</span>
         {confidence !== undefined && (
-          <span className="tabular" style={{ color: `var(--${level === "high" ? "verified" : level === "medium" ? "review" : "critical"})` }}>
+          <span className="tabular" style={{ color: BAND_COLOR[level!] }}>
             {pct(confidence, 0)}
           </span>
         )}
       </label>
-      <input
-        className={`field ${mono ? "font-id" : ""} ${vernacular ? "font-vernacular" : ""}`}
-        data-confidence={level}
-        value={value}
-        onChange={(e) => onValue(e.target.value)}
-        onFocus={focus}
-        onMouseEnter={() => hoverField(fieldKey)}
-        onMouseLeave={() => hoverField(null)}
-        title={level ? BAND_LABEL[level] : undefined}
-      />
-      {hint && <p className="mt-1 text-xs text-critical">{hint}</p>}
+      <div className="relative">
+        <input
+          className={`field text-sm ${mono ? "font-id" : ""} ${vernacular ? "font-vernacular" : ""} ${
+            suffix ? "pr-14" : ""
+          }`}
+          data-confidence={level}
+          value={value}
+          onChange={(e) => onValue(e.target.value)}
+          onFocus={() =>
+            bbox && focusField({ key: fieldKey, bbox, confidence, label })
+          }
+          onMouseEnter={() => hoverField(fieldKey)}
+          onMouseLeave={() => hoverField(null)}
+          title={level ? BAND_LABEL[level] : undefined}
+        />
+        {suffix && (
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 font-id text-[11px] text-ink-faint">
+            {suffix}
+          </span>
+        )}
+      </div>
+      {hint && <p className="mt-1 text-[11px] text-critical">{hint}</p>}
     </div>
   );
 }
 
 function Empty({ message }: { message: string }) {
   return (
-    <div className="rounded border border-dashed border-rule-strong p-6 text-center text-sm text-ink-muted">
+    <div className="rounded-md border border-dashed border-rule-strong p-5 text-center text-xs text-ink-faint">
       {message}
     </div>
   );

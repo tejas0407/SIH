@@ -79,7 +79,7 @@ export default function QueuePage() {
                 <li key={item.khata_id}>
                   <Link
                     href={`/review/${item.khata_id}`}
-                    className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-surface"
+                    className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-panel-raised"
                   >
                     <span
                       className="h-9 w-1 shrink-0 rounded-sm"

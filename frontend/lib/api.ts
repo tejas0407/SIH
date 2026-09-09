@@ -106,6 +106,16 @@ export async function verifyKhata(
   return data;
 }
 
+export async function rejectKhata(
+  khataId: string,
+  reason: string,
+): Promise<VerifyResponse> {
+  const { data } = await api.post<VerifyResponse>(`/hitl/${khataId}/reject`, null, {
+    params: { reason },
+  });
+  return data;
+}
+
 export async function fetchLedger(khataId: string) {
   const { data } = await api.get(`/hitl/${khataId}/ledger`);
   return data as { intact: boolean; entries_checked: number; head?: string; broken_at?: string };

@@ -109,6 +109,9 @@ export default function HomePage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <header className="mb-8">
+        <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+          Bhu-Validate AI · Intelligent Land Record Engine
+        </div>
         <h1 className="text-2xl">Land record digitisation</h1>
         <p className="mt-1 max-w-2xl text-sm text-ink-muted">
           Upload a scanned Record of Rights — a Jamabandi, 7/12 extract or Khatauni. The system
@@ -166,9 +169,9 @@ export default function HomePage() {
                 </div>
 
                 {!["COMMITTED", "NEEDS_REVIEW", "FAILED"].includes(job.status) && (
-                  <div className="mt-2 h-1 rounded-sm bg-surface">
+                  <div className="mt-2 h-1 rounded-sm bg-panel-raised">
                     <div
-                      className="h-full rounded-sm bg-ink-muted transition-all"
+                      className="h-full rounded-sm bg-focus transition-all"
                       style={{ width: `${Math.max(job.progress, 4)}%` }}
                     />
                   </div>

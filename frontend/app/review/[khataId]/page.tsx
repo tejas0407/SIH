@@ -2,34 +2,44 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import confetti from "canvas-confetti";
-import { ArrowLeft, PenLine } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import ActionBar from "@/components/ActionBar";
+import DiscrepancyDrawer from "@/components/DiscrepancyDrawer";
 import DocumentViewer from "@/components/DocumentViewer";
+import MetricsBar from "@/components/MetricsBar";
 import ReviewForm, { type Draft, type Tab } from "@/components/ReviewForm";
-import BalanceStrip from "@/components/BalanceStrip";
+import ReviewHeader from "@/components/ReviewHeader";
+import RejectModal from "@/components/RejectModal";
 import SignModal from "@/components/SignModal";
-import { fetchKhata, verifyKhata } from "@/lib/api";
+import { fetchKhata, rejectKhata, verifyKhata } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { AREA_TOLERANCE, SHARE_TOLERANCE, pct, toNumber } from "@/lib/format";
-import { type FocusTarget } from "@/lib/store";
+import { AREA_TOLERANCE, SHARE_TOLERANCE, toNumber } from "@/lib/format";
+import { useReviewStore, type FocusTarget } from "@/lib/store";
 import type { KhataDetail, ValidationFinding } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
 
 export default function ReviewPage() {
   const { khataId } = useParams<{ khataId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // Identity comes from the signed-in session. The backend takes the actor off
-  // the token regardless, so this only needs to match what the reviewer sees.
   const user = useAuth((s) => s.user);
   const reviewerId = user?.login_id ?? "unknown";
   const role: "PATWARI" | "TEHSILDAR" = user?.role === "TEHSILDAR" ? "TEHSILDAR" : "PATWARI";
 
+  const setHighlightIssues = useReviewStore((s) => s.setHighlightIssues);
+
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [tab, setTab] = useState<Tab>("khata");
+  const [tab, setTab] = useState<Tab>("metadata");
   const [signOpen, setSignOpen] = useState(false);
+  const [sealHash, setSealHash] = useState<string | null>(null);
+  const [rejectState, setRejectState] = useState<{ open: boolean; mode: "reject" | "flag" }>({
+    open: false,
+    mode: "reject",
+  });
   const [toast, setToast] = useState<{ text: string; tone: "ok" | "warn" } | null>(null);
 
   const { data: record, isLoading, error } = useQuery({
@@ -40,6 +50,12 @@ export default function ReviewPage() {
   useEffect(() => {
     if (record && !draft) setDraft(toDraft(record));
   }, [record, draft]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const verify = useMutation({
     mutationFn: (input: { reason: string; force: boolean }) => {
@@ -53,6 +69,8 @@ export default function ReviewPage() {
           parcel_id: p.parcel_id,
           khasra_number: p.khasra_number,
           plot_area_sqm: p.plot_area_sqm,
+          declared_unit: p.declared_unit || null,
+          declared_area: p.declared_area || null,
           land_classification: p.land_classification || null,
         })),
         owners: draft.owners.map((o) => ({
@@ -70,28 +88,34 @@ export default function ReviewPage() {
       });
     },
     onSuccess: (response) => {
-      setSignOpen(false);
       queryClient.invalidateQueries({ queryKey: ["queue"] });
       queryClient.invalidateQueries({ queryKey: ["khata", khataId] });
 
       if (response.committed) {
-        // One small celebration at the one moment that deserves it: a record
-        // has entered the official register.
+        setSealHash(response.ledger_head);
         confetti({ particleCount: 70, spread: 62, origin: { y: 0.7 }, disableForReducedMotion: true });
-        setToast({ text: response.message, tone: "ok" });
-        setTimeout(() => router.push("/queue"), 1600);
+        setTimeout(() => {
+          setSignOpen(false);
+          router.push("/queue");
+        }, 2400);
       } else {
+        setSignOpen(false);
         setToast({ text: response.message, tone: "warn" });
       }
     },
     onError: (err: Error) => setToast({ text: err.message, tone: "warn" }),
   });
 
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 6000);
-    return () => clearTimeout(timer);
-  }, [toast]);
+  const reject = useMutation({
+    mutationFn: ({ reason }: { reason: string }) => rejectKhata(khataId, reason),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ["queue"] });
+      setRejectState((s) => ({ ...s, open: false }));
+      setToast({ text: response.message, tone: "warn" });
+      setTimeout(() => router.push("/queue"), 1400);
+    },
+    onError: (err: Error) => setToast({ text: err.message, tone: "warn" }),
+  });
 
   const boxes = useMemo<FocusTarget[]>(() => {
     if (!record) return [];
@@ -101,7 +125,7 @@ export default function ReviewPage() {
         targets.push({
           key: `parcels.${index}.khasra_number`,
           bbox: parcel.bbox_json,
-          confidence: Math.min(...Object.values(parcel.field_confidence ?? { x: 1 })),
+          confidence: minConf(parcel.field_confidence),
           label: `Khasra ${parcel.khasra_number}`,
         });
       }
@@ -111,7 +135,7 @@ export default function ReviewPage() {
         targets.push({
           key: `owners.${index}.owner_name_vernacular`,
           bbox: owner.bbox_json,
-          confidence: Math.min(...Object.values(owner.field_confidence ?? { x: 1 })),
+          confidence: minConf(owner.field_confidence),
           label: owner.owner_name_en ?? owner.owner_name_vernacular,
         });
       }
@@ -119,7 +143,7 @@ export default function ReviewPage() {
     return targets;
   }, [record]);
 
-  /** Client-side mirror of the backend invariants, so the sign button reflects
+  /** Client-side mirror of the backend invariants, so the action bar reflects
    *  what the reviewer is looking at rather than the last server response. */
   const liveBlocking = useMemo<ValidationFinding[]>(() => {
     if (!draft) return [];
@@ -179,92 +203,102 @@ export default function ReviewPage() {
     return findings;
   }, [draft]);
 
+  const handleHighlight = () => {
+    setTab("parcels");
+    setHighlightIssues(true);
+    setTimeout(() => setHighlightIssues(false), 6000);
+  };
+
   if (isLoading || !draft || !record) {
-    return <Centered>{error ? (error as Error).message : "Opening the record…"}</Centered>;
+    return (
+      <div className="flex h-screen items-center justify-center bg-surface text-sm text-ink-muted">
+        {error ? (error as Error).message : "Opening the record…"}
+      </div>
+    );
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-rule bg-panel px-4 py-2.5">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link href="/queue" className="rounded p-1.5 text-ink-muted hover:bg-surface" aria-label="Back to the queue">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="truncate text-base">
-              Khata <span className="font-id">{record.khata_number}</span>
-              {record.fasli_year && <span className="text-ink-muted"> · {record.fasli_year}</span>}
-            </h1>
-            <p className="truncate text-xs text-ink-muted">
-              {record.village
-                ? `${record.village.village_name} · ${record.village.tehsil} · ${record.village.district}, ${record.village.state}`
-                : "Village not recorded"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-4">
-          <div className="text-right">
-            <div className="font-id text-lg leading-none">{pct(record.confidence.total_confidence)}</div>
-            <div className="text-2xs text-ink-muted">confidence</div>
-          </div>
-          <button type="button" className="btn btn-primary" onClick={() => setSignOpen(true)}>
-            <PenLine className="h-4 w-4" />
-            Review and sign
-          </button>
-        </div>
-      </header>
-
-      {liveBlocking.length > 0 && (
-        <div className="shrink-0 border-b border-critical bg-critical-wash px-4 py-2 text-sm text-critical">
-          {liveBlocking[0].message}
-          {liveBlocking.length > 1 && (
-            <span className="text-ink-muted"> · and {liveBlocking.length - 1} more</span>
-          )}
-        </div>
-      )}
+    <div className="flex h-screen flex-col overflow-hidden bg-surface text-ink">
+      <ReviewHeader record={record} blocking={liveBlocking} />
 
       <div className="flex min-h-0 flex-1">
-        <section className="min-w-0 flex-[58]">
+        <section className="min-w-0 flex-[56]">
           <DocumentViewer imageUrl={record.document_url} boxes={boxes} />
         </section>
 
-        <section className="flex min-w-0 flex-[42] flex-col border-l border-rule bg-surface">
+        <section className="flex min-w-0 flex-[44] flex-col border-l border-rule bg-surface">
+          <MetricsBar draft={draft} />
+          <DiscrepancyDrawer findings={liveBlocking} draft={draft} onHighlight={handleHighlight} />
           <ReviewForm record={record} draft={draft} onChange={setDraft} tab={tab} onTabChange={setTab} />
-          <BalanceStrip
-            declaredTotal={draft.total_area_sqm}
-            parcelAreas={draft.parcels.map((p) => p.plot_area_sqm)}
-            shares={draft.owners.map((o) => o.share_percentage)}
+          <ActionBar
+            approvalStatus={record.approval_status}
+            blockingCount={liveBlocking.length}
+            role={role}
+            busy={verify.isPending || reject.isPending}
+            onReject={() => setRejectState({ open: true, mode: "reject" })}
+            onFlag={() => setRejectState({ open: true, mode: "flag" })}
+            onApprove={() => setSignOpen(true)}
           />
         </section>
       </div>
 
-      <SignModal
-        open={signOpen}
-        record={record}
-        draft={draft}
-        blocking={liveBlocking}
-        role={role}
-        reviewerId={reviewerId}
-        submitting={verify.isPending}
-        onClose={() => setSignOpen(false)}
-        onConfirm={(reason, force) => verify.mutate({ reason, force })}
+      {signOpen && (
+        <SignModal
+          open={signOpen}
+          record={record}
+          draft={draft}
+          blocking={liveBlocking}
+          role={role}
+          reviewerId={reviewerId}
+          submitting={verify.isPending}
+          sealHash={sealHash}
+          onClose={() => {
+            setSignOpen(false);
+            setSealHash(null);
+          }}
+          onConfirm={(reason, force) => verify.mutate({ reason, force })}
+        />
+      )}
+
+      <RejectModal
+        open={rejectState.open}
+        mode={rejectState.mode}
+        busy={reject.isPending}
+        onClose={() => setRejectState((s) => ({ ...s, open: false }))}
+        onConfirm={(reason) =>
+          reject.mutate({
+            reason:
+              rejectState.mode === "flag"
+                ? `Flagged for field inspection — ${reason}`
+                : reason,
+          })
+        }
       />
 
-      {toast && (
-        <div
-          role="status"
-          className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded px-4 py-2.5 text-sm shadow-lg"
-          style={{
-            background: toast.tone === "ok" ? "var(--verified)" : "var(--critical)",
-            color: "#fff",
-          }}
-        >
-          {toast.text}
-        </div>
-      )}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            role="status"
+            className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-md px-4 py-2.5 text-sm shadow-xl"
+            style={{
+              background: toast.tone === "ok" ? "var(--verified)" : "var(--critical)",
+              color: "#0a0a0c",
+            }}
+          >
+            {toast.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
+}
+
+function minConf(map: Record<string, number> | undefined): number {
+  const values = Object.values(map ?? {});
+  return values.length ? Math.min(...values) : 1;
 }
 
 function toDraft(record: KhataDetail): Draft {
@@ -277,6 +311,8 @@ function toDraft(record: KhataDetail): Draft {
       parcel_id: p.parcel_id,
       khasra_number: p.khasra_number,
       plot_area_sqm: String(p.plot_area_sqm),
+      declared_area: p.declared_area != null ? String(p.declared_area) : "",
+      declared_unit: p.declared_unit ?? record.declared_unit ?? "",
       land_classification: p.land_classification ?? "",
       ulpin: p.ulpin,
       bbox: p.bbox_json,
@@ -294,11 +330,3 @@ function toDraft(record: KhataDetail): Draft {
     })),
   };
 }
-
-function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex h-screen items-center justify-center text-sm text-ink-muted">{children}</div>
-  );
-}
-
-export const dynamic = "force-dynamic";

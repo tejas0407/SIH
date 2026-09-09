@@ -16,6 +16,18 @@ export const BAND_COLOR: Record<ConfidenceBand, string> = {
   low: "var(--critical)",
 };
 
+export const BAND_WASH: Record<ConfidenceBand, string> = {
+  high: "var(--verified-wash)",
+  medium: "var(--review-wash)",
+  low: "var(--critical-wash)",
+};
+
+export const BAND_BORDER: Record<ConfidenceBand, string> = {
+  high: "var(--verified-border)",
+  medium: "var(--review-border)",
+  low: "var(--critical-border)",
+};
+
 export const BAND_LABEL: Record<ConfidenceBand, string> = {
   high: "Read cleanly",
   medium: "Needs a look",

@@ -249,7 +249,7 @@ function BoxOutline({
           y={b.ymin - 6 / scale}
           fill={color}
           fontSize={13 / scale}
-          fontFamily="IBM Plex Sans, sans-serif"
+          fontFamily="Inter, system-ui, sans-serif"
           fontWeight={600}
         >
           {target.label}

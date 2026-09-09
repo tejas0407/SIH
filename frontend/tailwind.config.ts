@@ -6,18 +6,30 @@ const config: Config = {
     extend: {
       colors: {
         surface: "var(--surface)",
-        panel: "var(--panel)",
+        panel: { DEFAULT: "var(--panel)", raised: "var(--panel-raised)" },
         well: "var(--well)",
-        ink: { DEFAULT: "var(--ink)", muted: "var(--ink-muted)" },
+        ink: { DEFAULT: "var(--ink)", muted: "var(--ink-muted)", faint: "var(--ink-faint)" },
         rule: { DEFAULT: "var(--rule)", strong: "var(--rule-strong)" },
-        verified: { DEFAULT: "var(--verified)", wash: "var(--verified-wash)" },
-        review: { DEFAULT: "var(--review)", wash: "var(--review-wash)" },
-        critical: { DEFAULT: "var(--critical)", wash: "var(--critical-wash)" },
+        verified: {
+          DEFAULT: "var(--verified)",
+          wash: "var(--verified-wash)",
+          border: "var(--verified-border)",
+        },
+        review: {
+          DEFAULT: "var(--review)",
+          wash: "var(--review-wash)",
+          border: "var(--review-border)",
+        },
+        critical: {
+          DEFAULT: "var(--critical)",
+          wash: "var(--critical-wash)",
+          border: "var(--critical-border)",
+        },
         focus: { DEFAULT: "var(--focus)", wash: "var(--focus-wash)" },
       },
       fontFamily: {
-        sans: ["IBM Plex Sans", "IBM Plex Sans Devanagari", "system-ui", "sans-serif"],
-        mono: ["IBM Plex Mono", "ui-monospace", "monospace"],
+        sans: ["Inter", "Noto Sans Devanagari", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       fontSize: {
         // Tightened scale: this is a dense console, not a landing page.
@@ -29,7 +41,7 @@ const config: Config = {
         xl: ["19px", "26px"],
         "2xl": ["23px", "30px"],
       },
-      borderRadius: { DEFAULT: "3px", sm: "2px", md: "4px" },
+      borderRadius: { DEFAULT: "4px", sm: "2px", md: "6px" },
     },
   },
   plugins: [],
