@@ -31,7 +31,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY backend/requirements.txt .
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# torch is pinned in requirements.txt but installed here first from PyTorch's
+# CPU-only wheel index: the default PyPI wheel bundles the full NVIDIA CUDA
+# toolkit (~3.4 GB of nvidia-* packages + triton), none of which this pipeline
+# ever uses — every OCR call runs with use_gpu=False and nothing here calls
+# .cuda(). Installing the CPU build first means `pip install -r
+# requirements.txt` sees the pinned version already satisfied and skips it.
+RUN pip install --upgrade pip \
+    && pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu \
+    && pip install -r requirements.txt \
+    # PaddleOCR pulls in opencv-python and opencv-contrib-python transitively,
+    # duplicating the opencv-python-headless already pinned above; drop the
+    # GUI-linked duplicates and keep only the headless build.
+    && pip uninstall -y opencv-python opencv-contrib-python 2>/dev/null || true
 
 COPY backend/ .
 

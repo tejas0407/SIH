@@ -1,0 +1,38 @@
+# Root .dockerignore — both docker/backend.Dockerfile and docker/frontend.Dockerfile
+# build with the repo root as context (they COPY backend/ and frontend/ explicitly),
+# so this file controls what actually gets sent to the Docker build daemon.
+# Without it, every build ships the full .git history and both dependency trees
+# to the builder before a single COPY runs — slow locally, and it burns build
+# minutes/bandwidth on a remote builder like DigitalOcean App Platform's.
+
+.git/
+.gitignore
+.github/
+
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+backend/.venv/
+backend/venv/
+backend/.data/
+backend/tests/
+
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/npm-debug.log*
+
+.env
+.env.local
+*.pem
+*.key
+
+*.log
+.DS_Store
+pgdata/
+minio-data/
+
+docs/
+README.md

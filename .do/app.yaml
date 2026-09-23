@@ -1,0 +1,154 @@
+# DigitalOcean App Platform spec for SIH26018 (DILRMP land-record system).
+#
+# App Platform's auto-detection only looks for package.json / requirements.txt
+# / a Dockerfile at the repo root; this project keeps its Dockerfiles under
+# docker/ and builds them against the repo root as context (they COPY
+# backend/ and frontend/ explicitly), which is why "no components detected"
+# shows up without this file. Deploy with it directly instead of the
+# create-app wizard:
+#
+#   doctl apps create --spec .do/app.yaml
+#   doctl apps update <app-id> --spec .do/app.yaml     # to apply changes later
+#
+# Before the first deploy:
+#   1. Create a DigitalOcean Space (Spaces Object Storage) for scan storage —
+#      App Platform has no bind-variable support for Spaces, so its endpoint
+#      and keys are set as plain encrypted app-level secrets below; fill them
+#      in via `doctl apps update` or the dashboard, never commit real values.
+#   2. On the managed Postgres cluster this spec creates, enable the
+#      `postgis` extension under Settings -> Extensions before the migrate
+#      job runs — CREATE EXTENSION on a managed cluster requires it to be
+#      allow-listed there first.
+#   3. Set JWT_SECRET_KEY and AADHAAR_HASH_SALT to real random values as
+#      encrypted secrets — the repo's defaults are dev-only placeholders.
+#
+# Sizing note: the backend/worker image bundles PaddleOCR, a CPU build of
+# PyTorch and Transformers; apps-s-2vcpu-4gb is close to the minimum that
+# will not OOM during inference. Size down once you've confirmed it's stable.
+
+name: dilrmp-land-records
+region: nyc
+
+databases:
+  - name: land-records-db
+    engine: PG
+    version: "16"
+    production: true
+  - name: land-records-redis
+    engine: REDIS
+    version: "7"
+    production: true
+
+services:
+  - name: backend
+    dockerfile_path: docker/backend.Dockerfile
+    source_dir: /
+    github:
+      repo: tejas0407/SIH
+      branch: main
+      deploy_on_push: true
+    http_port: 8000
+    instance_count: 1
+    instance_size_slug: apps-s-2vcpu-4gb
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 40
+    envs: &backend_envs
+      - key: POSTGRES_HOST
+        value: ${land-records-db.HOSTNAME}
+      - key: POSTGRES_PORT
+        value: ${land-records-db.PORT}
+      - key: POSTGRES_USER
+        value: ${land-records-db.USERNAME}
+      - key: POSTGRES_PASSWORD
+        value: ${land-records-db.PASSWORD}
+        type: SECRET
+      - key: POSTGRES_DB
+        value: ${land-records-db.DATABASE}
+      # DO's managed Redis does not support the multi-database SELECT that
+      # local docker-compose uses (db 0/1/2 for cache/broker/results) — all
+      # three point at the same instance, which is functionally fine.
+      - key: REDIS_URL
+        value: ${land-records-redis.DATABASE_URL}
+        type: SECRET
+      - key: CELERY_BROKER_URL
+        value: ${land-records-redis.DATABASE_URL}
+        type: SECRET
+      - key: CELERY_RESULT_BACKEND
+        value: ${land-records-redis.DATABASE_URL}
+        type: SECRET
+      # Object storage: point this at a DigitalOcean Space, not local MinIO.
+      - key: MINIO_ENDPOINT
+        value: "REPLACE_ME.digitaloceanspaces.com"
+      - key: MINIO_PUBLIC_ENDPOINT
+        value: "REPLACE_ME.digitaloceanspaces.com"
+      - key: MINIO_ROOT_USER
+        value: "REPLACE_ME_SPACES_ACCESS_KEY"
+        type: SECRET
+      - key: MINIO_ROOT_PASSWORD
+        value: "REPLACE_ME_SPACES_SECRET_KEY"
+        type: SECRET
+      - key: MINIO_SECURE
+        value: "true"
+      - key: JWT_SECRET_KEY
+        value: "REPLACE_ME_WITH_A_RANDOM_SECRET"
+        type: SECRET
+      - key: AADHAAR_HASH_SALT
+        value: "REPLACE_ME_WITH_A_RANDOM_SALT"
+        type: SECRET
+      - key: OFFLINE_MODE
+        value: "true"
+
+  - name: celery-worker
+    dockerfile_path: docker/backend.Dockerfile
+    source_dir: /
+    github:
+      repo: tejas0407/SIH
+      branch: main
+      deploy_on_push: true
+    run_command: celery -A app.workers.celery_app.celery_app worker --loglevel=info --concurrency=2 -Q ingestion
+    instance_count: 1
+    instance_size_slug: apps-s-2vcpu-4gb
+    envs: *backend_envs
+
+  - name: frontend
+    dockerfile_path: docker/frontend.Dockerfile
+    source_dir: /
+    github:
+      repo: tejas0407/SIH
+      branch: main
+      deploy_on_push: true
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    envs:
+      # NEXT_PUBLIC_* vars are baked in at build time by Next.js, so this
+      # must be a build-time env, and the backend component must exist
+      # already for ${backend.PUBLIC_URL} to resolve.
+      - key: NEXT_PUBLIC_API_BASE
+        scope: BUILD_TIME
+        value: ${backend.PUBLIC_URL}/api/v1
+
+jobs:
+  - name: migrate
+    dockerfile_path: docker/backend.Dockerfile
+    source_dir: /
+    github:
+      repo: tejas0407/SIH
+      branch: main
+      deploy_on_push: true
+    kind: PRE_DEPLOY
+    run_command: python -m app.seed.migrate
+    instance_size_slug: apps-s-1vcpu-1gb
+    envs:
+      - key: POSTGRES_HOST
+        value: ${land-records-db.HOSTNAME}
+      - key: POSTGRES_PORT
+        value: ${land-records-db.PORT}
+      - key: POSTGRES_USER
+        value: ${land-records-db.USERNAME}
+      - key: POSTGRES_PASSWORD
+        value: ${land-records-db.PASSWORD}
+        type: SECRET
+      - key: POSTGRES_DB
+        value: ${land-records-db.DATABASE}

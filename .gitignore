@@ -14,6 +14,7 @@ node_modules/
 out/
 npm-debug.log*
 .pnpm-debug.log*
+*.tsbuildinfo
 
 # Env & secrets
 .env
@@ -23,6 +24,7 @@ npm-debug.log*
 
 # Data / artifacts
 backend/.data/
+backend/app/seed/scans/
 minio-data/
 pgdata/
 *.log
