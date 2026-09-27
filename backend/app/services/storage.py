@@ -29,14 +29,17 @@ class ObjectStore:
             access_key=settings.MINIO_ROOT_USER,
             secret_key=settings.MINIO_ROOT_PASSWORD,
             secure=settings.MINIO_SECURE,
+            region=settings.MINIO_REGION,
         )
         # A separate client bound to the browser-reachable host, so presigned
         # URLs handed to the reviewer UI resolve outside the docker network.
+        public_secure = settings.MINIO_PUBLIC_SECURE
         self.public_client = Minio(
             settings.MINIO_PUBLIC_ENDPOINT,
             access_key=settings.MINIO_ROOT_USER,
             secret_key=settings.MINIO_ROOT_PASSWORD,
-            secure=settings.MINIO_SECURE,
+            secure=settings.MINIO_SECURE if public_secure is None else public_secure,
+            region=settings.MINIO_REGION,
         )
 
     def ensure_buckets(self) -> None:

@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     MINIO_ROOT_USER: str = "minioadmin"
     MINIO_ROOT_PASSWORD: str = "minioadmin"
     MINIO_SECURE: bool = False
+    # Scheme for the browser-facing presigned URLs; defaults to MINIO_SECURE.
+    # Differs when a TLS-terminating proxy sits in front of a plain-HTTP MinIO.
+    MINIO_PUBLIC_SECURE: bool | None = None
+    # Fixing the region stops the MinIO client from making a bucket-location
+    # request before it can sign a URL. That request goes to the *public*
+    # endpoint, which is usually unreachable from inside the container.
+    MINIO_REGION: str = "us-east-1"
     MINIO_BUCKET_RAW: str = "raw-scans"
     MINIO_BUCKET_TILES: str = "processed-tiles"
     MINIO_BUCKET_CERTS: str = "signed-certificates"

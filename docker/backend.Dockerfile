@@ -41,9 +41,12 @@ RUN pip install --upgrade pip \
     && pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu \
     && pip install -r requirements.txt \
     # PaddleOCR pulls in opencv-python and opencv-contrib-python transitively,
-    # duplicating the opencv-python-headless already pinned above; drop the
-    # GUI-linked duplicates and keep only the headless build.
-    && pip uninstall -y opencv-python opencv-contrib-python 2>/dev/null || true
+    # duplicating the pinned opencv-python-headless. All three install into the
+    # same cv2/ package, so uninstalling the duplicates deletes the headless
+    # build's files too; reinstall it afterwards or `import cv2` is left empty.
+    && (pip uninstall -y opencv-python opencv-contrib-python || true) \
+    && pip install --no-deps --force-reinstall opencv-python-headless==4.10.0.84 \
+    && python -c "import cv2; cv2.imread"
 
 COPY backend/ .
 
