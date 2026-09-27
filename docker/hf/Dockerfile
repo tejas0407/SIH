@@ -76,7 +76,9 @@ RUN pip install --upgrade pip \
 
 # Spaces run the container as uid 1000, so everything that is written at
 # runtime has to belong to that user.
-RUN useradd -m -u 1000 user
+RUN useradd -m -u 1000 user \
+    # Pre-create the data dir so a Docker volume mounted here inherits uid 1000.
+    && mkdir -p /home/user/data && chown user:user /home/user/data
 
 COPY --chown=user backend/ /app/
 COPY --from=frontend --chown=user /app/.next/standalone /frontend/

@@ -1,0 +1,44 @@
+# Always-on deployment for a single VM (built for Oracle Cloud's Always Free
+# Ampere A1 instance, but nothing here is Oracle-specific).
+#
+#   app    the single-container image from docker/hf/Dockerfile: PostGIS,
+#          Redis, MinIO, backend, Celery worker and frontend behind nginx:7860
+#   caddy  public HTTPS on 80/443 with an automatic Let's Encrypt certificate
+#
+# deploy/oracle/setup.sh writes the .env next to this file and starts it.
+
+name: bhu-validate
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: docker/hf/Dockerfile
+    image: bhu-validate:latest
+    restart: always
+    environment:
+      # Presigned scan URLs are signed against the public host.
+      SPACE_HOST: ${PUBLIC_HOST}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      AADHAAR_HASH_SALT: ${AADHAAR_HASH_SALT}
+    volumes:
+      # Database, object store and seed marker survive restarts and rebuilds.
+      - appdata:/home/user/data
+      - modelcache:/home/user/.cache
+
+  caddy:
+    image: caddy:2
+    restart: always
+    command: caddy reverse-proxy --from ${PUBLIC_HOST} --to app:7860
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddydata:/data
+    depends_on:
+      - app
+
+volumes:
+  appdata:
+  modelcache:
+  caddydata:

@@ -104,9 +104,12 @@ normal `git push` redeploys automatically once the app exists.
 
 # Deploying free on Hugging Face Spaces
 
-A Hugging Face **Docker Space** on the free "CPU basic" hardware (2 vCPU,
-16 GB RAM) is enough to run the whole stack, OCR included, at no cost and
-without a payment method. A Space runs one container on one port, so
+> **Note:** Hugging Face now requires a PRO subscription (about $9/month) to
+> host Docker Spaces, even on the basic CPU hardware. For a free always-on
+> deployment use Oracle Cloud (below).
+
+A Hugging Face **Docker Space** on "CPU basic" hardware (2 vCPU, 16 GB RAM) is
+enough to run the whole stack, OCR included. A Space runs one container on one port, so
 [docker/hf/Dockerfile](docker/hf/Dockerfile) packs Postgres/PostGIS, Redis,
 MinIO, the backend, the Celery worker and the frontend into a single image
 under supervisord, with nginx on port 7860 in front of all of them.
@@ -149,3 +152,50 @@ docker run --rm -p 7860:7860 -e SPACE_HOST=localhost:7860 -e HF_LOCAL_TEST=1 dil
 ```
 
 Then open http://localhost:7860.
+
+---
+
+# Always-on and free: Oracle Cloud Always Free VM
+
+Oracle's Always Free tier includes an Ampere A1 (ARM) VM with up to 4 OCPUs
+and 24 GB RAM, enough for the whole stack including OCR. The single-container
+image from [docker/hf/Dockerfile](docker/hf/Dockerfile) builds natively on ARM,
+and [deploy/oracle/](deploy/oracle/) adds Caddy in front for automatic HTTPS
+and Docker volumes so data survives restarts and reboots.
+
+## 1. Create the VM (Oracle console)
+
+1. Sign up at https://www.oracle.com/cloud/free/ (a card is needed for
+   verification only; Always Free resources are not charged).
+2. *Compute → Instances → Create instance*:
+   - **Image:** Canonical Ubuntu 22.04 (or 24.04)
+   - **Shape:** *Change shape → Ampere → VM.Standard.A1.Flex*, 4 OCPUs, 24 GB
+   - **SSH keys:** *Generate a key pair for me* and download the private key
+   - **Boot volume:** 100 GB (the image is large; up to 200 GB is free)
+3. Open the instance's subnet → *Security list* → *Add ingress rules*:
+   source `0.0.0.0/0`, TCP, destination ports `80,443`.
+
+If creation fails with *Out of capacity*, try another availability domain
+or retry later; free Ampere capacity is limited in popular regions.
+
+## 2. Copy the code and start it
+
+From the repo root on your own machine (replace the key path and IP):
+
+```bash
+git archive --format=tar HEAD | ssh -i path/to/ssh-key.key ubuntu@<public-ip> "mkdir -p bhu-validate && tar -x -C bhu-validate"
+ssh -i path/to/ssh-key.key ubuntu@<public-ip> "cd bhu-validate && bash deploy/oracle/setup.sh"
+```
+
+The first build takes 15–25 minutes. The app is then served at
+`https://<public-ip-with-dashes>.sslip.io` with a real certificate, and both
+containers restart automatically after crashes and reboots.
+
+To deploy new changes, run the same two commands again: the `.env` with the
+host name and secrets is kept, and so is all data.
+
+## Notes
+
+- Oracle may reclaim Always Free instances that stay nearly idle for 7 days.
+  Upgrading the account to Pay As You Go (still free for Always Free
+  resources) removes that.

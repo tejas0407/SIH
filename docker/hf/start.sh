@@ -5,6 +5,11 @@ set -euo pipefail
 
 mkdir -p "$DATA_DIR/redis" "$DATA_DIR/minio" /tmp/nginx
 
+# A restarted container keeps /tmp and the data volume, so lock and pid files
+# from the previous run are still there; nothing is running yet, so they are
+# all stale, and Postgres refuses to start while they exist.
+rm -f /tmp/.s.PGSQL.* /tmp/supervisord.pid /tmp/nginx.pid "$DATA_DIR/pg/postmaster.pid"
+
 # Hugging Face injects SPACE_HOST (e.g. "user-space.hf.space"). Presigned scan
 # URLs must be signed against that host so the reviewer's browser can open them.
 if [[ -z "${SPACE_HOST:-}" ]]; then
