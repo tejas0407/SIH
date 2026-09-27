@@ -1,7 +1,5 @@
-# Single-container build for a Hugging Face Docker Space.
-#
-# A Space runs exactly one container and exposes exactly one port, so the whole
-# docker-compose stack — PostGIS, Redis, MinIO, the FastAPI backend, the Celery
+# Single-container build of the whole stack, for hosts that run one container
+# behind one port (see deploy/oracle/). The whole docker-compose stack — PostGIS, Redis, MinIO, the FastAPI backend, the Celery
 # worker and the Next.js console — runs here under supervisord, with nginx on
 # port 7860 as the only thing the outside world talks to:
 #
@@ -10,8 +8,8 @@
 #   /raw-scans/ etc.         -> MinIO          127.0.0.1:9000  (presigned scan URLs)
 #
 # Build locally from the repo root to test:
-#   docker build -f docker/hf/Dockerfile -t dilrmp-hf .
-#   docker run --rm -p 7860:7860 -e SPACE_HOST=localhost:7860 -e HF_LOCAL_TEST=1 dilrmp-hf
+#   docker build -f docker/single/Dockerfile -t bhu-validate .
+#   docker run --rm -p 7860:7860 -e PUBLIC_HOST=localhost:7860 -e LOCAL_HTTP=1 bhu-validate
 
 # ---------- frontend build ----------
 FROM node:20-bookworm-slim AS frontend
@@ -74,7 +72,7 @@ RUN pip install --upgrade pip \
     && pip install --no-deps --force-reinstall opencv-python-headless==4.10.0.84 \
     && python -c "import cv2; cv2.imread"
 
-# Spaces run the container as uid 1000, so everything that is written at
+# Everything runs as an unprivileged user (uid 1000), so everything written at
 # runtime has to belong to that user.
 RUN useradd -m -u 1000 user \
     # Pre-create the data dir so a Docker volume mounted here inherits uid 1000.
@@ -84,8 +82,8 @@ COPY --chown=user backend/ /app/
 COPY --from=frontend --chown=user /app/.next/standalone /frontend/
 COPY --from=frontend --chown=user /app/.next/static /frontend/.next/static
 COPY --from=frontend --chown=user /app/public /frontend/public
-COPY --chown=user docker/hf/nginx.conf docker/hf/supervisord.conf docker/hf/start.sh docker/hf/bootstrap.sh /opt/hf/
-RUN chmod +x /opt/hf/start.sh /opt/hf/bootstrap.sh
+COPY --chown=user docker/single/nginx.conf docker/single/supervisord.conf docker/single/start.sh docker/single/bootstrap.sh /opt/app/
+RUN chmod +x /opt/app/start.sh /opt/app/bootstrap.sh
 
 USER user
 ENV HOME=/home/user \
@@ -93,7 +91,7 @@ ENV HOME=/home/user \
     DATA_DIR=/home/user/data \
     APP_ENV=production \
     POSTGRES_USER=dilrmp \
-    POSTGRES_PASSWORD=dilrmp_space_password \
+    POSTGRES_PASSWORD=dilrmp_single_password \
     POSTGRES_DB=land_records \
     POSTGRES_HOST=127.0.0.1 \
     POSTGRES_PORT=5432 \
@@ -108,4 +106,4 @@ ENV HOME=/home/user \
     OFFLINE_MODE=true
 
 EXPOSE 7860
-CMD ["/opt/hf/start.sh"]
+CMD ["/opt/app/start.sh"]

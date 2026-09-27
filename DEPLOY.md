@@ -102,64 +102,13 @@ normal `git push` redeploys automatically once the app exists.
 
 ---
 
-# Deploying free on Hugging Face Spaces
-
-> **Note:** Hugging Face now requires a PRO subscription (about $9/month) to
-> host Docker Spaces, even on the basic CPU hardware. For a free always-on
-> deployment use Oracle Cloud (below).
-
-A Hugging Face **Docker Space** on "CPU basic" hardware (2 vCPU, 16 GB RAM) is
-enough to run the whole stack, OCR included. A Space runs one container on one port, so
-[docker/hf/Dockerfile](docker/hf/Dockerfile) packs Postgres/PostGIS, Redis,
-MinIO, the backend, the Celery worker and the frontend into a single image
-under supervisord, with nginx on port 7860 in front of all of them.
-
-## Deploy
-
-1. Create a free account at https://huggingface.co.
-2. Create a **Write** access token at https://huggingface.co/settings/tokens.
-3. Log in once and publish:
-
-```bash
-pip install huggingface_hub
-hf auth login
-python scripts/deploy_hf_space.py <your-hf-username>/bhu-validate
-```
-
-The script creates the Space if needed and uploads the repo's tracked files
-with the Space's own `Dockerfile` and `README.md` at the root. Hugging Face
-then builds the image (roughly 10–15 minutes the first time); follow the
-*Logs* tab on the Space page. The app is served at
-`https://<your-hf-username>-bhu-validate.hf.space`.
-
-Re-run the same command after pushing changes to redeploy.
-
-## Trade-offs
-
-- **No persistent storage** on the free tier: every restart starts from a
-  fresh database with the demo records re-seeded. Uploads and review decisions
-  do not survive a restart.
-- A free Space **sleeps after 48 hours without visitors**; the next visit
-  wakes it, which takes a minute or two plus re-seeding.
-- `JWT_SECRET_KEY` and `AADHAAR_HASH_SALT` are generated at each boot unless
-  set as Space secrets (*Settings → Variables and secrets*).
-
-## Test the image locally
-
-```bash
-docker build -f docker/hf/Dockerfile -t dilrmp-hf .
-docker run --rm -p 7860:7860 -e SPACE_HOST=localhost:7860 -e HF_LOCAL_TEST=1 dilrmp-hf
-```
-
-Then open http://localhost:7860.
-
----
-
 # Always-on and free: Oracle Cloud Always Free VM
 
 Oracle's Always Free tier includes an Ampere A1 (ARM) VM with up to 4 OCPUs
 and 24 GB RAM, enough for the whole stack including OCR. The single-container
-image from [docker/hf/Dockerfile](docker/hf/Dockerfile) builds natively on ARM,
+image from [docker/single/Dockerfile](docker/single/Dockerfile) (the whole
+stack — PostGIS, Redis, MinIO, backend, worker and frontend — under
+supervisord, with nginx on port 7860) builds natively on ARM,
 and [deploy/oracle/](deploy/oracle/) adds Caddy in front for automatic HTTPS
 and Docker volumes so data survives restarts and reboots.
 
@@ -199,3 +148,12 @@ host name and secrets is kept, and so is all data.
 - Oracle may reclaim Always Free instances that stay nearly idle for 7 days.
   Upgrading the account to Pay As You Go (still free for Always Free
   resources) removes that.
+
+## Test the image locally
+
+```bash
+docker build -f docker/single/Dockerfile -t bhu-validate .
+docker run --rm -p 7860:7860 -e PUBLIC_HOST=localhost:7860 -e LOCAL_HTTP=1 bhu-validate
+```
+
+Then open http://localhost:7860.

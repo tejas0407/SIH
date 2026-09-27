@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Container entrypoint for the Hugging Face Space: prepares the data
+# Container entrypoint: prepares the data
 # directories, initialises Postgres on first boot, then hands off to supervisord.
 set -euo pipefail
 
@@ -10,20 +10,22 @@ mkdir -p "$DATA_DIR/redis" "$DATA_DIR/minio" /tmp/nginx
 # all stale, and Postgres refuses to start while they exist.
 rm -f /tmp/.s.PGSQL.* /tmp/supervisord.pid /tmp/nginx.pid "$DATA_DIR/pg/postmaster.pid"
 
-# Hugging Face injects SPACE_HOST (e.g. "user-space.hf.space"). Presigned scan
-# URLs must be signed against that host so the reviewer's browser can open them.
-if [[ -z "${SPACE_HOST:-}" ]]; then
-  echo "SPACE_HOST is not set; scan images will only load from localhost:7860" >&2
-  SPACE_HOST=localhost:7860
+# PUBLIC_HOST is the host name the site is served on (e.g. "1-2-3-4.sslip.io").
+# Presigned scan URLs must be signed against it so the reviewer's browser can
+# open them.
+if [[ -z "${PUBLIC_HOST:-}" ]]; then
+  echo "PUBLIC_HOST is not set; scan images will only load from localhost:7860" >&2
+  PUBLIC_HOST=localhost:7860
 fi
-export MINIO_PUBLIC_ENDPOINT="$SPACE_HOST"
+export MINIO_PUBLIC_ENDPOINT="$PUBLIC_HOST"
 # Plain HTTP when testing the image locally.
-if [[ -n "${HF_LOCAL_TEST:-}" ]]; then
+if [[ -n "${LOCAL_HTTP:-}" ]]; then
   export MINIO_PUBLIC_SECURE=false
 fi
 
-# Free Spaces have no persistent disk, so the session secret and hash salt only
-# need to live as long as the container. Space secrets override these.
+# Fallback secrets for a throwaway run. Set both explicitly for any deployment
+# with a persistent data volume (deploy/oracle/setup.sh does): a salt that
+# changes between boots no longer matches the hashes already stored.
 export JWT_SECRET_KEY="${JWT_SECRET_KEY:-$(python -c 'import secrets;print(secrets.token_hex(32))')}"
 export AADHAAR_HASH_SALT="${AADHAAR_HASH_SALT:-$(python -c 'import secrets;print(secrets.token_hex(32))')}"
 
@@ -35,4 +37,4 @@ if [[ ! -s "$DATA_DIR/pg/PG_VERSION" ]]; then
   rm -f "$pwfile"
 fi
 
-exec supervisord -c /opt/hf/supervisord.conf
+exec supervisord -c /opt/app/supervisord.conf
