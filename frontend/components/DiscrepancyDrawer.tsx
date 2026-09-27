@@ -61,7 +61,7 @@ export default function DiscrepancyDrawer({ findings, draft, onHighlight }: Prop
                     className="rounded-sm border px-2.5 py-1.5 text-xs leading-relaxed text-ink"
                     style={{
                       borderColor: "var(--critical-border)",
-                      background: "rgba(0,0,0,0.25)",
+                      background: "var(--panel)",
                     }}
                   >
                     <span className="font-id text-[10px] text-critical">{finding.code}</span>

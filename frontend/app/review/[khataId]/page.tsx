@@ -285,7 +285,7 @@ export default function ReviewPage() {
             className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-md px-4 py-2.5 text-sm shadow-xl"
             style={{
               background: toast.tone === "ok" ? "var(--verified)" : "var(--critical)",
-              color: "#0a0a0c",
+              color: "#ffffff",
             }}
           >
             {toast.text}

@@ -7,14 +7,16 @@
 /*
   Design intent
   -------------
-  A dark, high-density government administrative console. A Patwari or Tehsildar
+  A light, high-density government administrative console. A Patwari or Tehsildar
   works in this for hours comparing a scan against a structured form, so the
-  surface is near-monochrome zinc and the only thing colour is allowed to carry
-  is state:
+  surface is white and near-monochrome zinc, and the only thing colour is allowed
+  to carry is state:
 
     emerald  read cleanly / arithmetic closes / verified
     amber    ambiguous, handwritten, needs a human look
     rose     failed a mathematical invariant or a syntax rule
+
+  The state hues are the -700 shades so they hold AA contrast on white.
 
   Latin and Devanagari sit in the same table cell, so the stack pairs Inter with
   Noto Sans Devanagari. JetBrains Mono is reserved for identifiers a reviewer
@@ -22,33 +24,33 @@
 */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --surface: #09090b;        /* zinc-950 — app canvas */
-  --panel: #18181b;          /* zinc-900 — cards, panes */
-  --panel-raised: #1f1f23;   /* inputs, lifted rows */
-  --well: #0a0a0c;           /* scan lightbox */
+  --surface: #f4f4f5;        /* zinc-100 — app canvas */
+  --panel: #ffffff;          /* cards, panes */
+  --panel-raised: #ffffff;   /* inputs, lifted rows */
+  --well: #e4e4e7;           /* zinc-200 — scan lightbox */
 
-  --ink: #f4f4f5;            /* zinc-100 */
-  --ink-muted: #a1a1aa;      /* zinc-400 */
+  --ink: #18181b;            /* zinc-900 */
+  --ink-muted: #52525b;      /* zinc-600 */
   --ink-faint: #71717a;      /* zinc-500 */
 
-  --rule: #27272a;           /* zinc-800 */
-  --rule-strong: #3f3f46;    /* zinc-700 */
+  --rule: #e4e4e7;           /* zinc-200 */
+  --rule-strong: #d4d4d8;    /* zinc-300 */
 
-  --verified: #34d399;       /* emerald-400 */
-  --review: #fbbf24;         /* amber-400  */
-  --critical: #fb7185;       /* rose-400   */
-  --focus: #60a5fa;          /* blue-400   */
+  --verified: #047857;       /* emerald-700 */
+  --review: #b45309;         /* amber-700   */
+  --critical: #be123c;       /* rose-700    */
+  --focus: #2563eb;          /* blue-600    */
 
   --verified-wash: rgba(16, 185, 129, 0.10);
-  --review-wash: rgba(245, 158, 11, 0.10);
-  --critical-wash: rgba(244, 63, 94, 0.12);
-  --focus-wash: rgba(96, 165, 250, 0.14);
+  --review-wash: rgba(245, 158, 11, 0.12);
+  --critical-wash: rgba(244, 63, 94, 0.08);
+  --focus-wash: rgba(37, 99, 235, 0.14);
 
-  --verified-border: rgba(52, 211, 153, 0.32);
-  --review-border: rgba(251, 191, 36, 0.34);
-  --critical-border: rgba(251, 113, 133, 0.42);
+  --verified-border: rgba(4, 120, 87, 0.35);
+  --review-border: rgba(180, 83, 9, 0.38);
+  --critical-border: rgba(190, 18, 60, 0.40);
 
   /* National palette — used only in the government chrome, never for data. */
   --saffron: #ff9933;
@@ -58,26 +60,26 @@
 
 /* GIGW high-contrast mode: maximum separation, no subtle washes. */
 :root[data-contrast="high"] {
-  --surface: #000000;
-  --panel: #000000;
-  --panel-raised: #0a0a0a;
-  --well: #000000;
-  --ink: #ffffff;
-  --ink-muted: #f4f4f5;
-  --ink-faint: #d4d4d8;
-  --rule: #8a8a8a;
-  --rule-strong: #c8c8c8;
-  --verified: #4ade80;
-  --review: #fcd34d;
-  --critical: #ff8a9b;
-  --focus: #93c5fd;
-  --verified-wash: rgba(74, 222, 128, 0.2);
-  --review-wash: rgba(252, 211, 77, 0.2);
-  --critical-wash: rgba(255, 138, 155, 0.22);
-  --focus-wash: rgba(147, 197, 253, 0.28);
-  --verified-border: #4ade80;
-  --review-border: #fcd34d;
-  --critical-border: #ff8a9b;
+  --surface: #ffffff;
+  --panel: #ffffff;
+  --panel-raised: #ffffff;
+  --well: #ffffff;
+  --ink: #000000;
+  --ink-muted: #111111;
+  --ink-faint: #333333;
+  --rule: #555555;
+  --rule-strong: #000000;
+  --verified: #065f46;
+  --review: #7c2d12;
+  --critical: #9f1239;
+  --focus: #1d4ed8;
+  --verified-wash: rgba(6, 95, 70, 0.14);
+  --review-wash: rgba(124, 45, 18, 0.14);
+  --critical-wash: rgba(159, 18, 57, 0.14);
+  --focus-wash: rgba(29, 78, 216, 0.2);
+  --verified-border: #065f46;
+  --review-border: #7c2d12;
+  --critical-border: #9f1239;
 }
 :root[data-contrast="high"] .field,
 :root[data-contrast="high"] .btn {
@@ -200,7 +202,7 @@ textarea {
 }
 
 .field:hover {
-  border-color: #52525b; /* zinc-600 */
+  border-color: #a1a1aa; /* zinc-400 */
 }
 
 .field:focus {
@@ -240,8 +242,8 @@ textarea {
 }
 
 .btn:hover:not(:disabled) {
-  background: #2a2a30;
-  border-color: #52525b;
+  background: #f4f4f5;
+  border-color: #a1a1aa;
 }
 
 .btn:disabled {
@@ -252,23 +254,23 @@ textarea {
 .btn-primary {
   background: var(--ink);
   border-color: var(--ink);
-  color: #09090b;
+  color: #ffffff;
   font-weight: 500;
 }
 .btn-primary:hover:not(:disabled) {
-  background: #ffffff;
-  border-color: #ffffff;
+  background: #3f3f46;
+  border-color: #3f3f46;
 }
 
 .btn-approve {
   background: var(--verified);
   border-color: var(--verified);
-  color: #052e1c;
+  color: #ffffff;
   font-weight: 600;
 }
 .btn-approve:hover:not(:disabled) {
-  background: #6ee7b7;
-  border-color: #6ee7b7;
+  background: #065f46;
+  border-color: #065f46;
 }
 
 .btn-danger {
@@ -294,10 +296,10 @@ textarea {
 /* ---- scan lightbox ------------------------------------------------- */
 .scan-canvas {
   background-color: var(--well);
-  background-image: linear-gradient(45deg, #121216 25%, transparent 25%),
-    linear-gradient(-45deg, #121216 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #121216 75%),
-    linear-gradient(-45deg, transparent 75%, #121216 75%);
+  background-image: linear-gradient(45deg, #d4d4d8 25%, transparent 25%),
+    linear-gradient(-45deg, #d4d4d8 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #d4d4d8 75%),
+    linear-gradient(-45deg, transparent 75%, #d4d4d8 75%);
   background-size: 22px 22px;
   background-position: 0 0, 0 11px, 11px -11px, -11px 0;
 }
@@ -322,7 +324,7 @@ textarea {
   border: 3px solid var(--surface);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: #a1a1aa;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
