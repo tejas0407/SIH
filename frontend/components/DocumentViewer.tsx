@@ -128,7 +128,7 @@ export default function DocumentViewer({ imageUrl, boxes }: Props) {
         onPointerLeave={stopDrag}
       >
         {!imageUrl && (
-          <div className="flex h-full items-center justify-center px-8 text-center text-sm text-white/45">
+          <div className="flex h-full items-center justify-center px-8 text-center text-sm text-ink-muted">
             <div>
               <Scan className="mx-auto mb-3 h-7 w-7 opacity-50" />
               The source scan could not be loaded from the document store.
