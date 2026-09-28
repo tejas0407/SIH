@@ -58,6 +58,15 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!token) return null; // redirect in flight
 
+  if (pathname === "/language") {
+    return (
+      <>
+        <div className="tricolor-edge" />
+        {children}
+      </>
+    );
+  }
+
   const isReview = pathname.startsWith("/review/");
 
   return (

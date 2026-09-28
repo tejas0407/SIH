@@ -7,6 +7,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, Download, Lock } from "lucide
 import ConfidenceRing from "@/components/ConfidenceRing";
 import { exportUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useT, type StringKey } from "@/lib/i18n";
 import type { ApprovalStatus, KhataDetail, ValidationFinding } from "@/lib/types";
 
 interface Props {
@@ -14,16 +15,11 @@ interface Props {
   blocking: ValidationFinding[];
 }
 
-const STATUS: Record<ApprovalStatus, { label: string; hi: string; tone: string; pulse?: boolean }> = {
-  PENDING: {
-    label: "Pending inspection",
-    hi: "परीक्षण हेतु लंबित",
-    tone: "var(--review)",
-    pulse: true,
-  },
-  AUTO_APPROVED: { label: "Sealed & committed", hi: "सील", tone: "var(--verified)" },
-  MANUALLY_APPROVED: { label: "Sealed & committed", hi: "सील", tone: "var(--verified)" },
-  REJECTED: { label: "Rejected", hi: "निरस्त", tone: "var(--critical)" },
+const STATUS: Record<ApprovalStatus, { key: StringKey; tone: string; pulse?: boolean }> = {
+  PENDING: { key: "pending_inspection", tone: "var(--review)", pulse: true },
+  AUTO_APPROVED: { key: "sealed", tone: "var(--verified)" },
+  MANUALLY_APPROVED: { key: "sealed", tone: "var(--verified)" },
+  REJECTED: { key: "rejected", tone: "var(--critical)" },
 };
 
 /**
@@ -35,6 +31,7 @@ export default function GovBreadcrumb({ record, blocking }: Props) {
   const v = record.village;
   const status = STATUS[record.approval_status];
   const sig = useSessionSignature(record.khata_id);
+  const { l, en } = useT();
 
   const chain: { label: string; code?: string }[] = [
     { label: "India" },
@@ -80,7 +77,7 @@ export default function GovBreadcrumb({ record, blocking }: Props) {
         title="Simulated session signature (SHA-256 of the demo session context)"
       >
         <Lock className="h-3 w-3" />
-        Secure Government Session
+        <span className="font-vernacular">{l("secure_session")}</span> / {en("secure_session")}
         <span className="font-id text-ink-faint">{sig ? `${sig.slice(0, 16)}…` : "……"}</span>
       </span>
 
@@ -96,7 +93,7 @@ export default function GovBreadcrumb({ record, blocking }: Props) {
             background: `color-mix(in srgb, ${status.tone} 12%, transparent)`,
           }}
         >
-          {status.hi} / {status.label}
+          <span className="font-vernacular">{l(status.key)}</span> / {en(status.key)}
         </span>
 
         {blocking.length > 0 && (
@@ -134,7 +131,7 @@ function ExportMenu() {
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen((v) => !v)} className="btn h-7 px-2 text-2xs">
         <Download className="h-3 w-3" />
-        Export
+        <ExportLabel />
         <ChevronDown className="h-3 w-3 text-ink-faint" />
       </button>
       <AnimatePresence>
@@ -188,4 +185,13 @@ function stateCode(villageCode: string | undefined): string | undefined {
   // Demo village codes look like "UP09MRT031"; surface the numeric state code.
   const m = villageCode?.match(/\d{2}/);
   return m ? m[0] : undefined;
+}
+
+function ExportLabel() {
+  const { l, en } = useT();
+  return (
+    <>
+      <span className="font-vernacular">{l("export")}</span> / {en("export")}
+    </>
+  );
 }

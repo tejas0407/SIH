@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Contrast, Minus, Plus, RotateCcw } from "lucide-react";
 import { useA11y } from "@/lib/a11y";
-import { useLang } from "@/lib/i18n";
+import { LANGUAGES, useLang, useT, type Lang } from "@/lib/i18n";
 
 /**
  * GIGW-3.0 style utility strip: government identity on the left, the standard
@@ -13,6 +13,7 @@ import { useLang } from "@/lib/i18n";
 export default function GovUtilityStrip() {
   const { fontScale, highContrast, larger, smaller, resetFont, toggleContrast } = useA11y();
   const { lang, setLang } = useLang();
+  const { l, bi } = useT();
   const clock = useISTClock();
 
   return (
@@ -21,10 +22,12 @@ export default function GovUtilityStrip() {
       style={{ background: "var(--gov-navy)", color: "#cbd5e1", borderBottom: "1px solid #1e293b" }}
     >
       <div className="flex min-w-0 items-center gap-2 truncate">
-        <span className="font-medium text-slate-200">भारत सरकार | Government of India</span>
+        <span className="font-medium text-slate-200">
+          <span className="font-vernacular">{l("gov_india")}</span> | Government of India
+        </span>
         <span className="hidden text-slate-500 sm:inline">·</span>
         <span className="hidden truncate text-slate-400 sm:inline">
-          भू-अभिलेख आधुनिकीकरण कार्यक्रम (DILRMP) Portal
+          <span className="font-vernacular">{l("lrm_programme")}</span> (DILRMP) Portal
         </span>
         <span className="ml-1 shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-amber-400">
           SIH 2026 Prototype
@@ -59,18 +62,18 @@ export default function GovUtilityStrip() {
         </UtilBtn>
 
         <label className="ml-1 flex items-center gap-1 border-l border-slate-700 pl-2">
-          <span className="sr-only">Language</span>
+          <span className="sr-only">{bi("language")}</span>
           <select
             value={lang}
-            onChange={(e) => setLang(e.target.value as "en" | "hi")}
+            title={bi("language")}
+            onChange={(e) => setLang(e.target.value as Lang)}
             className="rounded-sm border border-slate-700 bg-transparent px-1 py-0.5 text-[11px] text-slate-200 outline-none focus-visible:border-slate-400"
           >
-            <option value="en" className="bg-slate-900">
-              English
-            </option>
-            <option value="hi" className="bg-slate-900">
-              हिन्दी
-            </option>
+            {LANGUAGES.map((option) => (
+              <option key={option.code} value={option.code} className="bg-slate-900">
+                {option.native} + English
+              </option>
+            ))}
           </select>
         </label>
 

@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, FileUp, Loader2 } from "lucide-react";
 import { exportUrl, fetchDocumentStatus, fetchSummary, uploadScan } from "@/lib/api";
 import { pct } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import type { ProcessingStatus } from "@/lib/types";
 
 interface Job {
@@ -31,6 +32,7 @@ const STEP_LABEL: Record<ProcessingStatus, string> = {
 
 export default function HomePage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const { l, en, bi } = useT();
 
   const { data: summary } = useQuery({
     queryKey: ["summary"],
@@ -112,7 +114,9 @@ export default function HomePage() {
         <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-ink-faint">
           Bhu-Validate AI · Intelligent Land Record Engine
         </div>
-        <h1 className="text-2xl">Land record digitisation</h1>
+        <h1 className="text-2xl">
+          <span className="font-vernacular">{l("land_record_digitisation")}</span> / {en("land_record_digitisation")}
+        </h1>
         <p className="mt-1 max-w-2xl text-sm text-ink-muted">
           Upload a scanned Record of Rights — a Jamabandi, 7/12 extract or Khatauni. The system
           straightens and cleans the page, reads the table, checks that the areas and shares add up,
@@ -185,23 +189,23 @@ export default function HomePage() {
       {summary && (
         <section className="mt-10">
           <div className="grid grid-cols-2 gap-px overflow-hidden rounded border border-rule bg-rule sm:grid-cols-4">
-            <Stat label="Records held" value={String(summary.khata_total)} />
-            <Stat label="Awaiting review" value={String(summary.pending_review)} />
-            <Stat label="Committed without a reviewer" value={pct(summary.auto_commit_rate, 0)} />
-            <Stat label="Area on the register" value={`${summary.approved_area_hectares} ha`} />
+            <Stat label={bi("records_held")} value={String(summary.khata_total)} />
+            <Stat label={bi("awaiting_review")} value={String(summary.pending_review)} />
+            <Stat label={bi("committed_auto")} value={pct(summary.auto_commit_rate, 0)} />
+            <Stat label={bi("area_on_register")} value={`${summary.approved_area_hectares} ha`} />
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/queue" className="btn">
-              Open the review queue
+              <span className="font-vernacular">{l("open_review_queue")}</span> / {en("open_review_queue")}
             </Link>
             <a className="btn" href={exportUrl("geojson")}>
               <Download className="h-4 w-4" />
-              Export GeoJSON
+              <span className="font-vernacular">{l("export")}</span> / {en("export")} GeoJSON
             </a>
             <a className="btn" href={exportUrl("csv")}>
               <Download className="h-4 w-4" />
-              Export CSV
+              <span className="font-vernacular">{l("export")}</span> / {en("export")} CSV
             </a>
           </div>
         </section>

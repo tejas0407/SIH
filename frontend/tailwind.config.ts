@@ -28,7 +28,17 @@ const config: Config = {
         focus: { DEFAULT: "var(--focus)", wash: "var(--focus-wash)" },
       },
       fontFamily: {
-        sans: ["Inter", "Noto Sans Devanagari", "system-ui", "sans-serif"],
+        sans: [
+          "Inter",
+          "Noto Sans Devanagari",
+          "Noto Sans Bengali",
+          "Noto Sans Telugu",
+          "Noto Sans Tamil",
+          "Noto Sans Gujarati",
+          "Noto Sans Kannada",
+          "system-ui",
+          "sans-serif",
+        ],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       fontSize: {

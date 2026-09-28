@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { LogOut, ShieldCheck } from "lucide-react";
 import EmblemPlaceholder from "./EmblemPlaceholder";
 import { useAuth } from "@/lib/auth";
+import { useT } from "@/lib/i18n";
 
 /**
  * National branding masthead. Tricolor edge, stylised emblem placeholder, the
@@ -14,6 +15,7 @@ export default function GovMasthead() {
   const router = useRouter();
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
+  const { l, bi } = useT();
 
   const officerId = user ? `DEMO-${user.role}-01` : "—";
 
@@ -26,11 +28,11 @@ export default function GovMasthead() {
           <EmblemPlaceholder className="h-11 w-11 shrink-0 text-ink" />
           <div className="min-w-0 leading-tight">
             <div className="text-2xs font-semibold uppercase tracking-wide text-amber-500">
-              ग्रामीण विकास मंत्रालय <span className="text-ink-faint">|</span> Ministry of Rural
-              Development
+              <span className="font-vernacular">{l("ministry")}</span>{" "}
+              <span className="text-ink-faint">|</span> Ministry of Rural Development
             </div>
             <div className="truncate text-base font-bold tracking-tight text-ink md:text-lg">
-              डिजिटल भारत भू-अभिलेख आधुनिकीकरण कार्यक्रम (DILRMP)
+              <span className="font-vernacular">{l("programme_full")}</span> (DILRMP)
             </div>
             <div className="truncate font-id text-2xs text-ink-faint">
               National Land Record Digitization &amp; Validation Portal (Bhu-Validate) ·{" "}
@@ -51,7 +53,7 @@ export default function GovMasthead() {
               <ShieldCheck className="h-4 w-4 text-verified" />
               <div className="leading-tight">
                 <div className="text-xs">
-                  <span className="text-ink-faint">Officer:</span> {user.display_name}{" "}
+                  <span className="text-ink-faint">{bi("officer")}:</span> {user.display_name}{" "}
                   <span className="font-id text-ink-faint">({user.role} ID: {officerId})</span>
                 </div>
                 <div className="text-2xs text-ink-faint">
@@ -64,7 +66,8 @@ export default function GovMasthead() {
                   logout();
                   router.replace("/login");
                 }}
-                title="End session"
+                title={bi("end_session")}
+                aria-label={bi("end_session")}
                 className="ml-1 rounded p-1 text-ink-faint hover:bg-panel hover:text-ink-muted"
               >
                 <LogOut className="h-4 w-4" />

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;600&family=Noto+Sans+Telugu:wght@400;500;600&family=Noto+Sans+Tamil:wght@400;500;600&family=Noto+Sans+Gujarati:wght@400;500;600&family=Noto+Sans+Kannada:wght@400;500;600&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -18,8 +18,10 @@
 
   The state hues are the -700 shades so they hold AA contrast on white.
 
-  Latin and Devanagari sit in the same table cell, so the stack pairs Inter with
-  Noto Sans Devanagari. JetBrains Mono is reserved for identifiers a reviewer
+  Latin and a regional script sit in the same table cell, so the stack pairs
+  Inter with the Noto Sans family for each supported script (Devanagari for
+  Hindi and Marathi, plus Bengali, Telugu, Tamil, Gujarati and Kannada); the
+  browser only downloads the ones a page actually uses. JetBrains Mono is reserved for identifiers a reviewer
   compares character by character: Khasra numbers, ULPINs, coordinates, hashes.
 */
 
@@ -100,7 +102,7 @@ body {
 body {
   background: var(--surface);
   color: var(--ink);
-  font-family: "Inter", "Noto Sans Devanagari", system-ui, -apple-system, sans-serif;
+  font-family: "Inter", "Noto Sans Devanagari", "Noto Sans Bengali", "Noto Sans Telugu", "Noto Sans Tamil", "Noto Sans Gujarati", "Noto Sans Kannada", system-ui, -apple-system, sans-serif;
   font-size: 0.875rem; /* 14px at the default root size; scales with the A-/A/A+ control */
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -155,7 +157,7 @@ body {
 }
 
 .font-vernacular {
-  font-family: "Noto Sans Devanagari", "Inter", sans-serif;
+  font-family: "Noto Sans Devanagari", "Noto Sans Bengali", "Noto Sans Telugu", "Noto Sans Tamil", "Noto Sans Gujarati", "Noto Sans Kannada", "Inter", sans-serif;
 }
 
 .font-id {

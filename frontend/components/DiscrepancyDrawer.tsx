@@ -6,6 +6,7 @@ import { AlertOctagon, ChevronDown, Crosshair } from "lucide-react";
 import { hectares, sqm, toNumber } from "@/lib/format";
 import type { Draft } from "./ReviewForm";
 import type { ValidationFinding } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 interface Props {
   findings: ValidationFinding[];
@@ -77,7 +78,7 @@ export default function DiscrepancyDrawer({ findings, draft, onHighlight }: Prop
                 style={{ borderColor: "var(--critical-border)" }}
               >
                 <Crosshair className="h-3.5 w-3.5" />
-                Highlight discrepant rows
+                <HighlightLabel />
               </button>
             </div>
           </motion.div>
@@ -117,4 +118,13 @@ function explain(finding: ValidationFinding, draft: Draft): string {
     return "The Khata number is blank. It is the primary key for the record in the register.";
   }
   return finding.message;
+}
+
+function HighlightLabel() {
+  const { l, en } = useT();
+  return (
+    <>
+      <span className="font-vernacular">{l("highlight_rows")}</span> / {en("highlight_rows")}
+    </>
+  );
 }

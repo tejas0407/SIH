@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, LogIn } from "lucide-react";
 import EmblemPlaceholder from "@/components/gov/EmblemPlaceholder";
 import { useAuth } from "@/lib/auth";
+import { useT } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +38,13 @@ function LoginForm() {
     hydrate();
   }, [hydrate]);
 
+  const { l } = useT();
+
+  // Someone already signed in skips the form; a fresh sign-in goes through
+  // the language chooser instead (see onSubmit), so ignore the token it sets.
   useEffect(() => {
-    if (hydrated && token) router.replace(next);
-  }, [hydrated, token, next, router]);
+    if (hydrated && token && !submitting) router.replace(next);
+  }, [hydrated, token, next, router]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -47,7 +52,7 @@ function LoginForm() {
     setSubmitting(true);
     try {
       await login(loginId, password);
-      router.replace(next);
+      router.replace(`/language?next=${encodeURIComponent(next)}`);
     } catch (err) {
       setError((err as Error).message || "Could not sign in. Try again.");
       setSubmitting(false);
@@ -67,10 +72,12 @@ function LoginForm() {
           <EmblemPlaceholder className="h-10 w-10 shrink-0 text-ink" />
           <div className="leading-tight">
             <div className="text-[9px] uppercase tracking-[0.14em] text-amber-500">
-              ग्रामीण विकास मंत्रालय · Ministry of Rural Development
+              <span className="font-vernacular">{l("ministry")}</span> · Ministry of Rural Development
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-base font-semibold">भू-अभिलेख आधुनिकीकरण (DILRMP)</span>
+              <span className="text-base font-semibold">
+                <span className="font-vernacular">{l("lrm")}</span> (DILRMP)
+              </span>
               <span className="rounded-sm bg-panel-raised px-1.5 py-px font-id text-[10px] text-ink-muted">
                 SIH26018
               </span>

@@ -3,24 +3,410 @@
 import { create } from "zustand";
 
 /**
- * Lightweight bilingual support for the government chrome. This is not a full
- * i18n layer — form content stays as extracted — but every institutional label
- * (masthead, utility strip, RoR table headers, statutory notice, action
- * buttons) is authored as an English/Hindi pair, and the language toggle
- * decides which reads first.
+ * Bilingual labels for the portal chrome. This is not a full i18n layer —
+ * record content stays as extracted — but every institutional label
+ * (masthead, utility strip, navigation, RoR table headers, statutory notice,
+ * action buttons) is shown in the reviewer's chosen regional language side by
+ * side with English. English is always present, so there is no English-only
+ * mode: the choice is which regional language accompanies it.
+ *
+ * The regional strings were drafted for this prototype and should be checked
+ * by a native speaker (ideally against each state's revenue terminology)
+ * before any real deployment.
  */
 
-export type Lang = "en" | "hi";
+export const LANGUAGES = [
+  { code: "hi", native: "हिन्दी", english: "Hindi" },
+  { code: "bn", native: "বাংলা", english: "Bengali" },
+  { code: "mr", native: "मराठी", english: "Marathi" },
+  { code: "te", native: "తెలుగు", english: "Telugu" },
+  { code: "ta", native: "தமிழ்", english: "Tamil" },
+  { code: "gu", native: "ગુજરાતી", english: "Gujarati" },
+  { code: "kn", native: "ಕನ್ನಡ", english: "Kannada" },
+] as const;
 
+export type Lang = (typeof LANGUAGES)[number]["code"];
+
+const DEFAULT_LANG: Lang = "hi";
 const KEY = "dilrmp.lang";
 
+type Entry = { en: string } & Record<Lang, string>;
+
+export const STRINGS = {
+  // ---- government chrome
+  gov_india: {
+    en: "Government of India",
+    hi: "भारत सरकार", bn: "ভারত সরকার", mr: "भारत सरकार", te: "భారత ప్రభుత్వం",
+    ta: "இந்திய அரசு", gu: "ભારત સરકાર", kn: "ಭಾರತ ಸರ್ಕಾರ",
+  },
+  ministry: {
+    en: "Ministry of Rural Development",
+    hi: "ग्रामीण विकास मंत्रालय", bn: "গ্রামোন্নয়ন মন্ত্রক", mr: "ग्रामीण विकास मंत्रालय",
+    te: "గ్రామీణాభివృద్ధి మంత్రిత్వ శాఖ", ta: "ஊரக வளர்ச்சி அமைச்சகம்",
+    gu: "ગ્રામીણ વિકાસ મંત્રાલય", kn: "ಗ್ರಾಮೀಣಾಭಿವೃದ್ಧಿ ಸಚಿವಾಲಯ",
+  },
+  programme_full: {
+    en: "Digital India Land Records Modernisation Programme",
+    hi: "डिजिटल भारत भू-अभिलेख आधुनिकीकरण कार्यक्रम",
+    bn: "ডিজিটাল ইন্ডিয়া ভূমি রেকর্ড আধুনিকীকরণ কর্মসূচি",
+    mr: "डिजिटल इंडिया भूमी अभिलेख आधुनिकीकरण कार्यक्रम",
+    te: "డిజిటల్ ఇండియా భూ రికార్డుల ఆధునీకరణ కార్యక్రమం",
+    ta: "டிஜிட்டல் இந்தியா நில ஆவண நவீனமயமாக்கல் திட்டம்",
+    gu: "ડિજિટલ ઇન્ડિયા જમીન રેકર્ડ આધુનિકીકરણ કાર્યક્રમ",
+    kn: "ಡಿಜಿಟಲ್ ಇಂಡಿಯಾ ಭೂ ದಾಖಲೆಗಳ ಆಧುನೀಕರಣ ಕಾರ್ಯಕ್ರಮ",
+  },
+  lrm: {
+    en: "Land Records Modernisation",
+    hi: "भू-अभिलेख आधुनिकीकरण", bn: "ভূমি রেকর্ড আধুনিকীকরণ", mr: "भूमी अभिलेख आधुनिकीकरण",
+    te: "భూ రికార్డుల ఆధునీకరణ", ta: "நில ஆவண நவீனமயமாக்கல்",
+    gu: "જમીન રેકર્ડ આધુનિકીકરણ", kn: "ಭೂ ದಾಖಲೆಗಳ ಆಧುನೀಕರಣ",
+  },
+  lrm_programme: {
+    en: "Land Records Modernisation Programme",
+    hi: "भू-अभिलेख आधुनिकीकरण कार्यक्रम", bn: "ভূমি রেকর্ড আধুনিকীকরণ কর্মসূচি",
+    mr: "भूमी अभिलेख आधुनिकीकरण कार्यक्रम", te: "భూ రికార్డుల ఆధునీకరణ కార్యక్రమం",
+    ta: "நில ஆவண நவீனமயமாக்கல் திட்டம்", gu: "જમીન રેકર્ડ આધુનિકીકરણ કાર્યક્રમ",
+    kn: "ಭೂ ದಾಖಲೆಗಳ ಆಧುನೀಕರಣ ಕಾರ್ಯಕ್ರಮ",
+  },
+  officer: {
+    en: "Officer",
+    hi: "अधिकारी", bn: "আধিকারিক", mr: "अधिकारी", te: "అధికారి", ta: "அலுவலர்",
+    gu: "અધિકારી", kn: "ಅಧಿಕಾರಿ",
+  },
+  end_session: {
+    en: "End session",
+    hi: "सत्र समाप्त करें", bn: "সেশন শেষ করুন", mr: "सत्र संपवा", te: "సెషన్ ముగించండి",
+    ta: "அமர்வை முடிக்கவும்", gu: "સત્ર સમાપ્ત કરો", kn: "ಸೆಷನ್ ಮುಗಿಸಿ",
+  },
+  language: {
+    en: "Language",
+    hi: "भाषा", bn: "ভাষা", mr: "भाषा", te: "భాష", ta: "மொழி", gu: "ભાષા", kn: "ಭಾಷೆ",
+  },
+  secure_session: {
+    en: "Secure Government Session",
+    hi: "सुरक्षित सरकारी सत्र", bn: "সুরক্ষিত সরকারি সেশন", mr: "सुरक्षित शासकीय सत्र",
+    te: "సురక్షిత ప్రభుత్వ సెషన్", ta: "பாதுகாப்பான அரசு அமர்வு",
+    gu: "સુરક્ષિત સરકારી સત્ર", kn: "ಸುರಕ್ಷಿತ ಸರ್ಕಾರಿ ಸೆಷನ್",
+  },
+  export: {
+    en: "Export",
+    hi: "निर्यात", bn: "রপ্তানি", mr: "निर्यात", te: "ఎగుమతి", ta: "ஏற்றுமதி",
+    gu: "નિકાસ", kn: "ರಫ್ತು",
+  },
+
+  // ---- language chooser
+  choose_language: {
+    en: "Choose your language",
+    hi: "अपनी भाषा चुनें", bn: "আপনার ভাষা বেছে নিন", mr: "आपली भाषा निवडा",
+    te: "మీ భాషను ఎంచుకోండి", ta: "உங்கள் மொழியைத் தேர்ந்தெடுக்கவும்",
+    gu: "તમારી ભાષા પસંદ કરો", kn: "ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+  },
+  choose_language_hint: {
+    en: "The portal will show this language next to English. You can change it any time from the top bar.",
+    hi: "पोर्टल यह भाषा अंग्रेज़ी के साथ दिखाएगा। आप इसे कभी भी ऊपर की पट्टी से बदल सकते हैं।",
+    bn: "পোর্টাল এই ভাষাটি ইংরেজির পাশে দেখাবে। আপনি যেকোনো সময় উপরের বার থেকে এটি বদলাতে পারেন।",
+    mr: "पोर्टल ही भाषा इंग्रजीसोबत दाखवेल. तुम्ही ती कधीही वरच्या पट्टीतून बदलू शकता.",
+    te: "పోర్టల్ ఈ భాషను ఆంగ్లంతో పాటు చూపిస్తుంది. మీరు దీన్ని ఎప్పుడైనా పై పట్టీ నుండి మార్చవచ్చు.",
+    ta: "இந்த மொழி ஆங்கிலத்துடன் சேர்த்துக் காட்டப்படும். மேலே உள்ள பட்டையிலிருந்து எப்போது வேண்டுமானாலும் மாற்றலாம்.",
+    gu: "પોર્ટલ આ ભાષા અંગ્રેજી સાથે બતાવશે. તમે તેને ગમે ત્યારે ઉપરની પટ્ટીમાંથી બદલી શકો છો.",
+    kn: "ಪೋರ್ಟಲ್ ಈ ಭಾಷೆಯನ್ನು ಇಂಗ್ಲಿಷ್ ಜೊತೆಗೆ ತೋರಿಸುತ್ತದೆ. ನೀವು ಇದನ್ನು ಯಾವಾಗ ಬೇಕಾದರೂ ಮೇಲಿನ ಪಟ್ಟಿಯಿಂದ ಬದಲಾಯಿಸಬಹುದು.",
+  },
+  continue: {
+    en: "Continue",
+    hi: "आगे बढ़ें", bn: "এগিয়ে যান", mr: "पुढे चला", te: "కొనసాగించండి", ta: "தொடரவும்",
+    gu: "આગળ વધો", kn: "ಮುಂದುವರಿಸಿ",
+  },
+
+  // ---- home
+  land_record_digitisation: {
+    en: "Land record digitisation",
+    hi: "भू-अभिलेख डिजिटलीकरण", bn: "ভূমি রেকর্ড ডিজিটাইজেশন", mr: "भूमी अभिलेख डिजिटायझेशन",
+    te: "భూ రికార్డుల డిజిటలీకరణ", ta: "நில ஆவண டிஜிட்டல்மயமாக்கல்",
+    gu: "જમીન રેકર્ડ ડિજિટાઇઝેશન", kn: "ಭೂ ದಾಖಲೆಗಳ ಡಿಜಿಟಲೀಕರಣ",
+  },
+  upload_scan: {
+    en: "Upload a scan",
+    hi: "स्कैन अपलोड करें", bn: "স্ক্যান আপলোড করুন", mr: "स्कॅन अपलोड करा",
+    te: "స్కాన్ అప్‌లోడ్ చేయండి", ta: "ஸ்கேனைப் பதிவேற்றவும்", gu: "સ્કેન અપલોડ કરો",
+    kn: "ಸ್ಕ್ಯಾನ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
+  },
+  records_held: {
+    en: "Records held",
+    hi: "कुल अभिलेख", bn: "মোট রেকর্ড", mr: "एकूण अभिलेख", te: "మొత్తం రికార్డులు",
+    ta: "மொத்த ஆவணங்கள்", gu: "કુલ રેકર્ડ", kn: "ಒಟ್ಟು ದಾಖಲೆಗಳು",
+  },
+  awaiting_review: {
+    en: "Awaiting review",
+    hi: "समीक्षा हेतु लंबित", bn: "পর্যালোচনার অপেক্ষায়", mr: "पुनरावलोकनासाठी प्रलंबित",
+    te: "సమీక్ష కోసం వేచి ఉన్నవి", ta: "மதிப்பாய்வுக்குக் காத்திருப்பவை",
+    gu: "સમીક્ષા માટે બાકી", kn: "ಪರಿಶೀಲನೆಗೆ ಬಾಕಿ",
+  },
+  committed_auto: {
+    en: "Committed without a reviewer",
+    hi: "बिना समीक्षक के दर्ज", bn: "পর্যালোচক ছাড়াই নথিভুক্ত", mr: "पुनरावलोकनाशिवाय नोंदवलेले",
+    te: "సమీక్షకుడు లేకుండా నమోదైనవి", ta: "மதிப்பாய்வாளர் இன்றி பதிவானவை",
+    gu: "સમીક્ષક વિના નોંધાયેલ", kn: "ಪರಿಶೀಲಕರಿಲ್ಲದೆ ದಾಖಲಾದವು",
+  },
+  area_on_register: {
+    en: "Area on the register",
+    hi: "पंजी में दर्ज क्षेत्रफल", bn: "রেজিস্টারে নথিভুক্ত এলাকা", mr: "नोंदवहीतील क्षेत्रफळ",
+    te: "రిజిస్టర్‌లోని విస్తీర్ణం", ta: "பதிவேட்டில் உள்ள பரப்பளவு",
+    gu: "રજિસ્ટર પરનું ક્ષેત્રફળ", kn: "ನೋಂದಣಿಯಲ್ಲಿನ ವಿಸ್ತೀರ್ಣ",
+  },
+  open_review_queue: {
+    en: "Open the review queue",
+    hi: "समीक्षा कतार खोलें", bn: "পর্যালোচনার তালিকা খুলুন", mr: "पुनरावलोकन रांग उघडा",
+    te: "సమీక్ష క్యూ తెరవండి", ta: "மதிப்பாய்வு வரிசையைத் திறக்கவும்",
+    gu: "સમીક્ષા કતાર ખોલો", kn: "ಪರಿಶೀಲನಾ ಸರದಿ ತೆರೆಯಿರಿ",
+  },
+
+  // ---- queue
+  queue_title: {
+    en: "Records waiting for a reviewer",
+    hi: "समीक्षक की प्रतीक्षा में अभिलेख", bn: "পর্যালোচকের অপেক্ষায় থাকা রেকর্ড",
+    mr: "पुनरावलोकनाच्या प्रतीक्षेतील अभिलेख", te: "సమీక్షకుడి కోసం వేచి ఉన్న రికార్డులు",
+    ta: "மதிப்பாய்வாளருக்காகக் காத்திருக்கும் ஆவணங்கள்", gu: "સમીક્ષકની રાહ જોતા રેકર્ડ",
+    kn: "ಪರಿಶೀಲಕರಿಗಾಗಿ ಕಾಯುತ್ತಿರುವ ದಾಖಲೆಗಳು",
+  },
+  queue_empty: {
+    en: "The queue is empty.",
+    hi: "कतार खाली है।", bn: "তালিকা খালি।", mr: "रांग रिकामी आहे.", te: "క్యూ ఖాళీగా ఉంది.",
+    ta: "வரிசை காலியாக உள்ளது.", gu: "કતાર ખાલી છે.", kn: "ಸರದಿ ಖಾಲಿಯಾಗಿದೆ.",
+  },
+  previous: {
+    en: "Previous",
+    hi: "पिछला", bn: "আগের", mr: "मागील", te: "మునుపటి", ta: "முந்தைய", gu: "પાછલું", kn: "ಹಿಂದಿನ",
+  },
+  next: {
+    en: "Next",
+    hi: "अगला", bn: "পরের", mr: "पुढील", te: "తదుపరి", ta: "அடுத்து", gu: "આગળનું", kn: "ಮುಂದಿನ",
+  },
+
+  // ---- review workspace
+  tab_metadata: {
+    en: "Metadata",
+    hi: "विवरण", bn: "বিবরণ", mr: "तपशील", te: "వివరాలు", ta: "விவரங்கள்", gu: "વિગતો", kn: "ವಿವರಗಳು",
+  },
+  tab_parcels: {
+    en: "Parcels",
+    hi: "खसरे", bn: "দাগ", mr: "भूखंड", te: "భూభాగాలు", ta: "நிலப் பகுதிகள்", gu: "જમીન ખંડ",
+    kn: "ಜಮೀನು ತುಂಡುಗಳು",
+  },
+  tab_owners: {
+    en: "Ownership",
+    hi: "स्वामित्व", bn: "মালিকানা", mr: "मालकी", te: "యాజమాన్యం", ta: "உரிமை", gu: "માલિકી",
+    kn: "ಮಾಲೀಕತ್ವ",
+  },
+  tab_notes: {
+    en: "Marginal notes",
+    hi: "हाशिया टिप्पणियाँ", bn: "প্রান্তিক মন্তব্য", mr: "समासातील नोंदी", te: "మార్జిన్ వ్యాఖ్యలు",
+    ta: "ஓரக் குறிப்புகள்", gu: "હાંસિયાની નોંધો", kn: "ಅಂಚಿನ ಟಿಪ್ಪಣಿಗಳು",
+  },
+  location: {
+    en: "Location",
+    hi: "स्थान", bn: "অবস্থান", mr: "स्थान", te: "స్థానం", ta: "இருப்பிடம்", gu: "સ્થાન", kn: "ಸ್ಥಳ",
+  },
+  record_identity: {
+    en: "Record identity",
+    hi: "अभिलेख पहचान", bn: "রেকর্ড পরিচয়", mr: "अभिलेख ओळख", te: "రికార్డు గుర్తింపు",
+    ta: "ஆவண அடையாளம்", gu: "રેકર્ડ ઓળખ", kn: "ದಾಖಲೆ ಗುರುತು",
+  },
+  state: {
+    en: "State",
+    hi: "राज्य", bn: "রাজ্য", mr: "राज्य", te: "రాష్ట్రం", ta: "மாநிலம்", gu: "રાજ્ય", kn: "ರಾಜ್ಯ",
+  },
+  district: {
+    en: "District",
+    hi: "जिला", bn: "জেলা", mr: "जिल्हा", te: "జిల్లా", ta: "மாவட்டம்", gu: "જિલ્લો", kn: "ಜಿಲ್ಲೆ",
+  },
+  tehsil: {
+    en: "Tehsil",
+    hi: "तहसील", bn: "তহসিল", mr: "तालुका", te: "మండలం", ta: "வட்டம்", gu: "તાલુકો", kn: "ತಾಲ್ಲೂಕು",
+  },
+  village_code: {
+    en: "Village code",
+    hi: "ग्राम कोड", bn: "গ্রাম কোড", mr: "गाव कोड", te: "గ్రామ కోడ్", ta: "கிராமக் குறியீடு",
+    gu: "ગામ કોડ", kn: "ಗ್ರಾಮ ಸಂಕೇತ",
+  },
+  khata_number: {
+    en: "Khata number",
+    hi: "खाता संख्या", bn: "খতিয়ান নম্বর", mr: "खाते क्रमांक", te: "ఖాతా సంఖ్య", ta: "பட்டா எண்",
+    gu: "ખાતા નંબર", kn: "ಖಾತೆ ಸಂಖ್ಯೆ",
+  },
+  fasli_year: {
+    en: "Fasli year",
+    hi: "फसली वर्ष", bn: "ফসলি বছর", mr: "फसली वर्ष", te: "ఫస్లీ సంవత్సరం", ta: "பசலி ஆண்டு",
+    gu: "ફસલી વર્ષ", kn: "ಫಸ್ಲಿ ವರ್ಷ",
+  },
+  total_area: {
+    en: "Total area recorded (m²)",
+    hi: "दर्ज कुल क्षेत्रफल (वर्ग मी.)", bn: "নথিভুক্ত মোট এলাকা (বর্গ মি.)",
+    mr: "नोंदवलेले एकूण क्षेत्रफळ (चौ. मी.)", te: "నమోదైన మొత్తం విస్తీర్ణం (చ.మీ.)",
+    ta: "பதிவான மொத்தப் பரப்பளவு (ச.மீ.)", gu: "નોંધાયેલ કુલ ક્ષેત્રફળ (ચો.મી.)",
+    kn: "ದಾಖಲಾದ ಒಟ್ಟು ವಿಸ್ತೀರ್ಣ (ಚ.ಮೀ.)",
+  },
+  highlight_rows: {
+    en: "Highlight discrepant rows",
+    hi: "विसंगत पंक्तियाँ दिखाएँ", bn: "অসঙ্গত সারি চিহ্নিত করুন", mr: "विसंगत ओळी ठळक करा",
+    te: "అసమాన వరుసలను హైలైట్ చేయండి", ta: "முரண்பாடான வரிசைகளைக் காட்டு",
+    gu: "વિસંગત પંક્તિઓ પ્રકાશિત કરો", kn: "ಅಸಮಂಜಸ ಸಾಲುಗಳನ್ನು ಎತ್ತಿ ತೋರಿಸಿ",
+  },
+
+  // ---- record status
+  pending_inspection: {
+    en: "Pending inspection",
+    hi: "परीक्षण हेतु लंबित", bn: "পরিদর্শনের অপেক্ষায়", mr: "तपासणीसाठी प्रलंबित",
+    te: "తనిఖీ కోసం పెండింగ్", ta: "ஆய்வுக்காக நிலுவையில்", gu: "તપાસ માટે બાકી",
+    kn: "ತಪಾಸಣೆಗೆ ಬಾಕಿ",
+  },
+  sealed: {
+    en: "Sealed & committed",
+    hi: "सील", bn: "সিলমোহরকৃত", mr: "मोहरबंद", te: "ముద్రించబడింది", ta: "முத்திரையிடப்பட்டது",
+    gu: "સીલબંધ", kn: "ಮುದ್ರೆ ಹಾಕಲಾಗಿದೆ",
+  },
+  rejected: {
+    en: "Rejected",
+    hi: "निरस्त", bn: "বাতিল", mr: "रद्द", te: "తిరస్కరించబడింది", ta: "நிராகரிக்கப்பட்டது",
+    gu: "રદ", kn: "ತಿರಸ್ಕೃತ",
+  },
+  discrepancy: {
+    en: "Discrepancy detected",
+    hi: "विसंगति पाई गई", bn: "অসঙ্গতি পাওয়া গেছে", mr: "विसंगती आढळली", te: "అసమానత కనుగొనబడింది",
+    ta: "முரண்பாடு கண்டறியப்பட்டது", gu: "વિસંગતતા મળી", kn: "ಅಸಮಂಜಸತೆ ಪತ್ತೆಯಾಗಿದೆ",
+  },
+
+  // ---- attestation footer
+  notice: {
+    en: "Notice",
+    hi: "सूचना", bn: "বিজ্ঞপ্তি", mr: "सूचना", te: "నోటీసు", ta: "அறிவிப்பு", gu: "સૂચના", kn: "ಸೂಚನೆ",
+  },
+  notice_body: {
+    en: "Editing this record is subject to legal liability under the Land Revenue Act.",
+    hi: "भू-राजस्व अधिनियम के तहत इस अभिलेख का संपादन विधिक दायित्व के अधीन है।",
+    bn: "ভূমি রাজস্ব আইনের অধীনে এই রেকর্ড সম্পাদনা আইনি দায়বদ্ধতার অধীন।",
+    mr: "जमीन महसूल अधिनियमांतर्गत या अभिलेखाचे संपादन कायदेशीर जबाबदारीच्या अधीन आहे.",
+    te: "భూ రెవెన్యూ చట్టం ప్రకారం ఈ రికార్డును సవరించడం చట్టపరమైన బాధ్యతకు లోబడి ఉంటుంది.",
+    ta: "நில வருவாய்ச் சட்டத்தின் கீழ் இந்த ஆவணத்தைத் திருத்துவது சட்டப் பொறுப்புக்கு உட்பட்டது.",
+    gu: "જમીન મહેસૂલ અધિનિયમ હેઠળ આ રેકર્ડમાં ફેરફાર કાનૂની જવાબદારીને આધીન છે.",
+    kn: "ಭೂ ಕಂದಾಯ ಕಾಯ್ದೆಯಡಿ ಈ ದಾಖಲೆಯನ್ನು ತಿದ್ದುವುದು ಕಾನೂನು ಹೊಣೆಗಾರಿಕೆಗೆ ಒಳಪಟ್ಟಿದೆ.",
+  },
+  reject_record: {
+    en: "Reject Record",
+    hi: "अभिलेख निरस्त करें", bn: "রেকর্ড বাতিল করুন", mr: "अभिलेख रद्द करा",
+    te: "రికార్డును తిరస్కరించండి", ta: "ஆவணத்தை நிராகரி", gu: "રેકર્ડ રદ કરો",
+    kn: "ದಾಖಲೆ ತಿರಸ್ಕರಿಸಿ",
+  },
+  send_field: {
+    en: "Send for Field Verification",
+    hi: "स्थल निरीक्षण हेतु भेजें", bn: "সরেজমিন যাচাইয়ের জন্য পাঠান", mr: "स्थळ पाहणीसाठी पाठवा",
+    te: "క్షేత్ర పరిశీలనకు పంపండి", ta: "கள ஆய்வுக்கு அனுப்பு", gu: "સ્થળ ચકાસણી માટે મોકલો",
+    kn: "ಸ್ಥಳ ಪರಿಶೀಲನೆಗೆ ಕಳುಹಿಸಿ",
+  },
+  record_rejected: {
+    en: "Record rejected",
+    hi: "अभिलेख निरस्त", bn: "রেকর্ড বাতিল", mr: "अभिलेख रद्द", te: "రికార్డు తిరస్కరించబడింది",
+    ta: "ஆவணம் நிராகரிக்கப்பட்டது", gu: "રેકર્ડ રદ", kn: "ದಾಖಲೆ ತಿರಸ್ಕೃತ",
+  },
+  title_certified: {
+    en: "Title certified",
+    hi: "प्रमाणित", bn: "প্রত্যয়িত", mr: "प्रमाणित", te: "ధ్రువీకరించబడింది",
+    ta: "சான்றளிக்கப்பட்டது", gu: "પ્રમાણિત", kn: "ಪ್ರಮಾಣೀಕೃತ",
+  },
+  esign_approve: {
+    en: "e-Sign & Certify Title",
+    hi: "डिजिटल हस्ताक्षर एवं अनुमोदन", bn: "ডিজিটাল স্বাক্ষর ও অনুমোদন", mr: "डिजिटल स्वाक्षरी व मंजुरी",
+    te: "డిజిటల్ సంతకం & ఆమోదం", ta: "டிஜிட்டல் கையொப்பம் & ஒப்புதல்",
+    gu: "ડિજિટલ સહી અને મંજૂરી", kn: "ಡಿಜಿಟಲ್ ಸಹಿ ಮತ್ತು ಅನುಮೋದನೆ",
+  },
+
+  // ---- Record of Rights parcel ledger
+  parcel_ledger: {
+    en: "Record of Rights — Parcel ledger",
+    hi: "खसरा विवरण", bn: "দাগের বিবরণ", mr: "भूखंड तपशील", te: "భూభాగ వివరాలు",
+    ta: "நிலப் பகுதி விவரம்", gu: "જમીન ખંડ વિગત", kn: "ಜಮೀನು ತುಂಡುಗಳ ವಿವರ",
+  },
+  add_parcel: {
+    en: "Add a parcel",
+    hi: "नया खसरा जोड़ें", bn: "নতুন দাগ যোগ করুন", mr: "नवीन भूखंड जोडा",
+    te: "కొత్త భూభాగం జోడించండి", ta: "புதிய நிலப் பகுதியைச் சேர்", gu: "નવો જમીન ખંડ ઉમેરો",
+    kn: "ಹೊಸ ಜಮೀನು ತುಂಡು ಸೇರಿಸಿ",
+  },
+  col_sno: {
+    en: "S.No.",
+    hi: "क्र.सं.", bn: "ক্রমিক নং", mr: "अ.क्र.", te: "క్ర.సం.", ta: "வ.எண்", gu: "ક્રમ નં.", kn: "ಕ್ರ.ಸಂ.",
+  },
+  col_khasra: {
+    en: "Khasra / Survey No.",
+    hi: "खसरा संख्या", bn: "দাগ নম্বর", mr: "गट / सर्वे क्रमांक", te: "సర్వే నంబరు", ta: "புல எண்",
+    gu: "સર્વે નંબર", kn: "ಸರ್ವೆ ಸಂಖ್ಯೆ",
+  },
+  col_area: {
+    en: "Area in Ha / Sq.m",
+    hi: "क्षेत्रफल (हे. / वर्ग मी.)", bn: "আয়তন (হে. / বর্গ মি.)", mr: "क्षेत्रफळ (हे. / चौ. मी.)",
+    te: "విస్తీర్ణం (హె. / చ.మీ.)", ta: "பரப்பளவு (ஹெ. / ச.மீ.)", gu: "ક્ષેત્રફળ (હે. / ચો.મી.)",
+    kn: "ವಿಸ್ತೀರ್ಣ (ಹೆ. / ಚ.ಮೀ.)",
+  },
+  col_class: {
+    en: "Land Classification",
+    hi: "भू-उपयोग", bn: "জমির শ্রেণি", mr: "जमिनीचा प्रकार", te: "భూ వర్గీకరణ",
+    ta: "நில வகைப்பாடு", gu: "જમીનનો પ્રકાર", kn: "ಭೂ ವರ್ಗೀಕರಣ",
+  },
+  col_ulpin: {
+    en: "ULPIN / Bhu-Aadhaar",
+    hi: "विशिष्ट पहचान", bn: "অনন্য পরিচয়", mr: "विशिष्ट ओळख", te: "ప్రత్యేక గుర్తింపు",
+    ta: "தனித்துவ அடையாளம்", gu: "વિશિષ્ટ ઓળખ", kn: "ವಿಶಿಷ್ಟ ಗುರುತು",
+  },
+  col_status: {
+    en: "Status",
+    hi: "सत्यापन स्थिति", bn: "যাচাইয়ের অবস্থা", mr: "पडताळणी स्थिती", te: "ధ్రువీకరణ స్థితి",
+    ta: "சரிபார்ப்பு நிலை", gu: "ચકાસણી સ્થિતિ", kn: "ಪರಿಶೀಲನಾ ಸ್ಥಿತಿ",
+  },
+  lc_agricultural: {
+    en: "Agricultural",
+    hi: "कृषि", bn: "কৃষি", mr: "शेती", te: "వ్యవసాయ", ta: "விவசாயம்", gu: "ખેતી", kn: "ಕೃಷಿ",
+  },
+  lc_abadi: {
+    en: "Abadi",
+    hi: "गैर-कृषि / आबादी", bn: "অকৃষি / বসতি", mr: "बिगरशेती / गावठाण", te: "వ్యవసాయేతర / ఆబాది",
+    ta: "விவசாயமல்லாத / குடியிருப்பு", gu: "બિનખેતી / ગામતળ", kn: "ಕೃಷಿಯೇತರ / ಗ್ರಾಮಠಾಣ",
+  },
+  lc_irrigated: {
+    en: "Irrigated",
+    hi: "सिंचित", bn: "সেচযুক্ত", mr: "बागायती", te: "సాగునీటి", ta: "பாசன", gu: "પિયત", kn: "ನೀರಾವರಿ",
+  },
+  lc_unirrigated: {
+    en: "Unirrigated",
+    hi: "असिंचित", bn: "সেচবিহীন", mr: "जिरायती", te: "మెట్ట", ta: "மானாவாரி", gu: "બિનપિયત",
+    kn: "ಖುಷ್ಕಿ",
+  },
+  lc_orchard: {
+    en: "Orchard",
+    hi: "बाग", bn: "বাগান", mr: "फळबाग", te: "తోట", ta: "தோட்டம்", gu: "બગીચો", kn: "ತೋಟ",
+  },
+  lc_dry_crop: {
+    en: "Dry crop",
+    hi: "शुष्क फसल", bn: "শুষ্ক ফসল", mr: "कोरडवाहू पीक", te: "మెట్ట పంట", ta: "புன்செய் பயிர்",
+    gu: "સૂકી ખેતી", kn: "ಒಣ ಬೆಳೆ",
+  },
+  lc_barren: {
+    en: "Barren",
+    hi: "बंजर", bn: "অনুর্বর", mr: "पडीक", te: "బంజరు", ta: "தரிசு", gu: "પડતર", kn: "ಬಂಜರು",
+  },
+} satisfies Record<string, Entry>;
+
+export type StringKey = keyof typeof STRINGS;
+
+function isLang(value: unknown): value is Lang {
+  return LANGUAGES.some((l) => l.code === value);
+}
+
 function read(): Lang {
-  if (typeof window === "undefined") return "en";
+  if (typeof window === "undefined") return DEFAULT_LANG;
   try {
     const v = window.localStorage.getItem(KEY);
-    return v === "hi" ? "hi" : "en";
+    return isLang(v) ? v : DEFAULT_LANG;
   } catch {
-    return "en";
+    return DEFAULT_LANG;
   }
 }
 
@@ -32,9 +418,13 @@ interface LangState {
 }
 
 export const useLang = create<LangState>((set) => ({
-  lang: "en",
+  lang: DEFAULT_LANG,
   hydrated: false,
-  hydrate: () => set({ lang: read(), hydrated: true }),
+  hydrate: () => {
+    const lang = read();
+    if (typeof document !== "undefined") document.documentElement.lang = lang;
+    set({ lang, hydrated: true });
+  },
   setLang: (lang) => {
     try {
       window.localStorage.setItem(KEY, lang);
@@ -46,8 +436,16 @@ export const useLang = create<LangState>((set) => ({
   },
 }));
 
-/** Pick the string for the active language. */
+/**
+ * `l(key)` is the label in the chosen regional language, `en(key)` the
+ * English one, and `bi(key)` both side by side ("regional / English").
+ */
 export function useT() {
   const lang = useLang((s) => s.lang);
-  return (en: string, hi: string) => (lang === "hi" ? hi : en);
+  return {
+    lang,
+    l: (key: StringKey) => STRINGS[key][lang],
+    en: (key: StringKey) => STRINGS[key].en,
+    bi: (key: StringKey, sep = " / ") => `${STRINGS[key][lang]}${sep}${STRINGS[key].en}`,
+  };
 }

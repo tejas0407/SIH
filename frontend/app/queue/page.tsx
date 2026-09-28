@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ChevronRight, Inbox } from "lucide-react";
 import { fetchQueue } from "@/lib/api";
 import { BAND_COLOR, band, pct, timestamp } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 
 type Sort = "confidence" | "oldest" | "newest";
 
@@ -18,6 +19,7 @@ const SORTS: { id: Sort; label: string }[] = [
 export default function QueuePage() {
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<Sort>("confidence");
+  const { l, en } = useT();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["queue", page, sort],
@@ -29,7 +31,9 @@ export default function QueuePage() {
     <main className="mx-auto max-w-5xl px-6 py-8">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl">Records waiting for a reviewer</h1>
+          <h1 className="text-2xl">
+            <span className="font-vernacular">{l("queue_title")}</span> / {en("queue_title")}
+          </h1>
           <p className="mt-1 text-sm text-ink-muted">
             Everything the system could not vouch for on its own. Open a record to compare it
             against the scan and sign it off.
@@ -60,12 +64,14 @@ export default function QueuePage() {
       {data && data.items.length === 0 && (
         <div className="rounded border border-dashed border-rule-strong bg-panel px-6 py-14 text-center">
           <Inbox className="mx-auto mb-3 h-7 w-7 text-ink-muted" />
-          <p className="text-base">The queue is empty.</p>
+          <p className="text-base">
+            <span className="font-vernacular">{l("queue_empty")}</span> / {en("queue_empty")}
+          </p>
           <p className="mt-1 text-sm text-ink-muted">
             Every processed record either committed on its own or has already been signed off.
           </p>
           <Link href="/" className="btn mt-4 inline-flex">
-            Upload a scan
+            <span className="font-vernacular">{l("upload_scan")}</span> / {en("upload_scan")}
           </Link>
         </div>
       )}
@@ -135,14 +141,14 @@ export default function QueuePage() {
             </span>
             <div className="flex gap-2">
               <button className="btn" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                Previous
+                <span className="font-vernacular">{l("previous")}</span> / {en("previous")}
               </button>
               <button
                 className="btn"
                 disabled={data.page * data.page_size >= data.total}
                 onClick={() => setPage((p) => p + 1)}
               >
-                Next
+                <span className="font-vernacular">{l("next")}</span> / {en("next")}
               </button>
             </div>
           </nav>

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Crosshair, FileText, History, Plus, ScrollText, Trash2 } from "lucide-react";
 import StampBadge, { type StampKind } from "@/components/gov/StampBadge";
 import { AREA_TOLERANCE, BAND_COLOR, BAND_LABEL, band, hectares, pct, toNumber } from "@/lib/format";
+import { useT, type StringKey } from "@/lib/i18n";
 import { useReviewStore } from "@/lib/store";
 import type { BBox, KhataDetail, RelationType, ValidationFinding } from "@/lib/types";
 
@@ -49,14 +50,15 @@ interface Props {
   onTabChange: (tab: Tab) => void;
 }
 
-const TABS: { id: Tab; label: string; icon: typeof FileText }[] = [
-  { id: "metadata", label: "Metadata", icon: FileText },
-  { id: "parcels", label: "Parcels", icon: ScrollText },
-  { id: "owners", label: "Ownership", icon: History },
-  { id: "notes", label: "Marginal notes", icon: ScrollText },
+const TABS: { id: Tab; label: StringKey; icon: typeof FileText }[] = [
+  { id: "metadata", label: "tab_metadata", icon: FileText },
+  { id: "parcels", label: "tab_parcels", icon: ScrollText },
+  { id: "owners", label: "tab_owners", icon: History },
+  { id: "notes", label: "tab_notes", icon: ScrollText },
 ];
 
 export default function ReviewForm({ record, draft, onChange, tab, onTabChange }: Props) {
+  const { l, en } = useT();
   const findingsFor = (path: string) =>
     record.validation_errors.filter((f) => f.field_path.startsWith(path));
 
@@ -84,7 +86,11 @@ export default function ReviewForm({ record, draft, onChange, tab, onTabChange }
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
-              {label}
+              <span>
+                <span className="font-vernacular">{l(label)}</span>
+                <span className="text-ink-faint"> / </span>
+                {en(label)}
+              </span>
               {count > 0 && (
                 <span className="rounded-sm bg-panel-raised px-1 py-px font-id text-[10px] text-ink-muted">
                   {count}
@@ -137,22 +143,23 @@ function MetadataTab({
   findingsFor: (p: string) => ValidationFinding[];
 }) {
   const v = record.village;
+  const { bi } = useT();
 
   return (
     <div className="space-y-4">
-      <Section title="Location">
+      <Section title={bi("location")}>
         <div className="grid grid-cols-2 gap-3">
-          <ReadOnly label="State" value={v?.state ?? "—"} />
-          <ReadOnly label="District" value={v?.district ?? "—"} />
-          <ReadOnly label="Tehsil" value={v?.tehsil ?? "—"} />
-          <ReadOnly label="Village code" value={v?.village_code ?? "—"} mono />
+          <ReadOnly label={bi("state")} value={v?.state ?? "—"} />
+          <ReadOnly label={bi("district")} value={v?.district ?? "—"} />
+          <ReadOnly label={bi("tehsil")} value={v?.tehsil ?? "—"} />
+          <ReadOnly label={bi("village_code")} value={v?.village_code ?? "—"} mono />
         </div>
       </Section>
 
-      <Section title="Record identity">
+      <Section title={bi("record_identity")}>
         <div className="grid grid-cols-2 gap-3">
           <Field
-            label="Khata number"
+            label={bi("khata_number")}
             fieldKey="khata.khata_number"
             bbox={null}
             confidence={record.confidence.ocr_confidence}
@@ -161,7 +168,7 @@ function MetadataTab({
             mono
           />
           <Field
-            label="Fasli year"
+            label={bi("fasli_year")}
             fieldKey="khata.fasli_year"
             bbox={null}
             value={draft.fasli_year}
@@ -169,7 +176,7 @@ function MetadataTab({
             mono
           />
           <Field
-            label="Total area recorded (m²)"
+            label={bi("total_area")}
             fieldKey="khata.total_area_sqm"
             bbox={null}
             confidence={record.confidence.ocr_confidence}
@@ -210,13 +217,13 @@ function MetadataTab({
 }
 
 /* ---------------------------------------------------------------- Parcels */
-const ROR_COLS = [
-  { hi: "क्र.सं.", en: "S.No." },
-  { hi: "खसरा संख्या", en: "Khasra / Survey No." },
-  { hi: "क्षेत्रफल (हे. / वर्ग मी.)", en: "Area in Ha / Sq.m" },
-  { hi: "भू-उपयोग", en: "Land Classification" },
-  { hi: "विशिष्ट पहचान", en: "ULPIN / Bhu-Aadhaar" },
-  { hi: "सत्यापन स्थिति", en: "Status" },
+const ROR_COLS: StringKey[] = [
+  "col_sno",
+  "col_khasra",
+  "col_area",
+  "col_class",
+  "col_ulpin",
+  "col_status",
 ];
 
 function ParcelsTab({
@@ -230,6 +237,7 @@ function ParcelsTab({
 }) {
   const highlight = useReviewStore((s) => s.highlightIssues);
   const focusField = useReviewStore((s) => s.focusField);
+  const { l, en, bi } = useT();
 
   const parcelSum = draft.parcels.reduce((t, p) => t + toNumber(p.plot_area_sqm), 0);
   const declared = toNumber(draft.total_area_sqm);
@@ -270,7 +278,7 @@ function ParcelsTab({
     <div className="space-y-3">
       <div className="mb-1 flex items-baseline justify-between">
         <h3 className="text-[10px] uppercase tracking-wide text-ink-faint">
-          खसरा विवरण / Record of Rights — Parcel ledger
+          <span className="font-vernacular">{l("parcel_ledger")}</span> / {en("parcel_ledger")}
         </h3>
         <span className="font-id text-2xs text-ink-faint">
           Σ {parcelSum.toFixed(2)} m² ({hectares(parcelSum)} ha)
@@ -287,9 +295,9 @@ function ParcelsTab({
             <thead>
               <tr className="border-b border-rule bg-panel-raised text-left align-bottom">
                 {ROR_COLS.map((c) => (
-                  <th key={c.en} className="px-2 py-1.5 font-medium">
-                    <span className="block font-vernacular text-[11px] text-ink-muted">{c.hi}</span>
-                    <span className="block text-[10px] font-normal text-ink-faint">{c.en}</span>
+                  <th key={c} className="px-2 py-1.5 font-medium">
+                    <span className="block font-vernacular text-[11px] text-ink-muted">{l(c)}</span>
+                    <span className="block text-[10px] font-normal text-ink-faint">{en(c)}</span>
                   </th>
                 ))}
               </tr>
@@ -385,12 +393,12 @@ function ParcelsTab({
                       >
                         <option value="">—</option>
                         {LAND_CLASSES.map((c) => (
-                          <option key={c.en} value={c.en}>
-                            {c.hi} / {c.en}
+                          <option key={c} value={en(c)}>
+                            {bi(c)}
                           </option>
                         ))}
                         {parcel.land_classification &&
-                          !LAND_CLASSES.some((c) => c.en === parcel.land_classification) && (
+                          !LAND_CLASSES.some((c) => en(c) === parcel.land_classification) && (
                             <option value={parcel.land_classification}>
                               {parcel.land_classification}
                             </option>
@@ -422,7 +430,7 @@ function ParcelsTab({
 
       <button type="button" onClick={add} className="btn h-9 w-full text-xs">
         <Plus className="h-4 w-4" />
-        नया खसरा जोड़ें / Add a parcel
+        <span className="font-vernacular">{l("add_parcel")}</span> / {en("add_parcel")}
       </button>
 
       {record.parcels.length > 0 && (
@@ -703,14 +711,15 @@ function NotesTab({ record }: { record: KhataDetail }) {
 }
 
 /* ------------------------------------------------------------------ shared */
-const LAND_CLASSES: { hi: string; en: string }[] = [
-  { hi: "कृषि", en: "Agricultural" },
-  { hi: "गैर-कृषि / आबादी", en: "Abadi" },
-  { hi: "सिंचित", en: "Irrigated" },
-  { hi: "असिंचित", en: "Unirrigated" },
-  { hi: "बाग", en: "Orchard" },
-  { hi: "शुष्क फसल", en: "Dry crop" },
-  { hi: "बंजर", en: "Barren" },
+// Stored values stay English; the label pairs them with the regional term.
+const LAND_CLASSES: StringKey[] = [
+  "lc_agricultural",
+  "lc_abadi",
+  "lc_irrigated",
+  "lc_unirrigated",
+  "lc_orchard",
+  "lc_dry_crop",
+  "lc_barren",
 ];
 
 function minConf(map: Record<string, number>): number {

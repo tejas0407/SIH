@@ -1,6 +1,7 @@
 "use client";
 
 import { Fingerprint, MapPinned, XCircle } from "lucide-react";
+import { useT } from "@/lib/i18n";
 import type { ApprovalStatus } from "@/lib/types";
 
 interface Props {
@@ -31,12 +32,15 @@ export default function AttestationFooter({
   const blocked = blockingCount > 0;
   const canOverride = role === "TEHSILDAR";
   const approveDisabled = busy || settled || (blocked && !canOverride);
+  const { l, en } = useT();
 
   return (
     <div className="shrink-0 border-t border-rule bg-panel">
       <p className="border-b border-rule/60 px-4 py-1.5 text-2xs leading-relaxed text-ink-faint">
-        <span className="font-medium text-ink-muted">सूचना / Notice:</span>{" "}
-        भू-राजस्व अधिनियम के तहत इस अभिलेख का संपादन विधिक दायित्व के अधीन है। Every modification is
+        <span className="font-medium text-ink-muted">
+          <span className="font-vernacular">{l("notice")}</span> / {en("notice")}:
+        </span>{" "}
+        <span className="font-vernacular">{l("notice_body")}</span> Every modification is
         cryptographically hashed and permanently logged under Section 33 of the Land Revenue Code.
       </p>
 
@@ -49,7 +53,8 @@ export default function AttestationFooter({
             disabled={busy || settled}
           >
             <XCircle className="h-4 w-4" />
-            अभिलेख निरस्त करें <span className="text-ink-faint">(Reject Record)</span>
+            <span className="font-vernacular">{l("reject_record")}</span>{" "}
+            <span className="text-ink-faint">({en("reject_record")})</span>
           </button>
           <button
             type="button"
@@ -58,7 +63,8 @@ export default function AttestationFooter({
             disabled={busy || settled}
           >
             <MapPinned className="h-4 w-4" />
-            स्थल निरीक्षण हेतु भेजें <span className="opacity-70">(Send for Field Verification)</span>
+            <span className="font-vernacular">{l("send_field")}</span>{" "}
+            <span className="opacity-70">({en("send_field")})</span>
           </button>
         </div>
 
@@ -77,12 +83,19 @@ export default function AttestationFooter({
             className="inline-flex h-9 items-center gap-2 rounded border border-emerald-900 bg-emerald-800 px-4 text-xs font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Fingerprint className="h-4 w-4" />
-            {settled
-              ? approvalStatus === "REJECTED"
-                ? "अभिलेख निरस्त / Record rejected"
-                : "प्रमाणित / Title certified"
-              : "डिजिटल हस्ताक्षर एवं अनुमोदन "}
-            {!settled && <span className="opacity-80">(e-Sign &amp; Certify Title)</span>}
+            {settled ? (
+              <span>
+                <span className="font-vernacular">
+                  {l(approvalStatus === "REJECTED" ? "record_rejected" : "title_certified")}
+                </span>{" "}
+                / {en(approvalStatus === "REJECTED" ? "record_rejected" : "title_certified")}
+              </span>
+            ) : (
+              <span>
+                <span className="font-vernacular">{l("esign_approve")}</span>{" "}
+                <span className="opacity-80">({en("esign_approve")})</span>
+              </span>
+            )}
           </button>
         </div>
       </div>
