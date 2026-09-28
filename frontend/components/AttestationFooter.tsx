@@ -1,6 +1,5 @@
 "use client";
 
-import { Fingerprint, MapPinned, XCircle } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import type { ApprovalStatus } from "@/lib/types";
 
@@ -36,53 +35,38 @@ export default function AttestationFooter({
 
   return (
     <div className="shrink-0 border-t border-rule bg-panel">
-      <p className="border-b border-rule/60 px-4 py-1.5 text-2xs leading-relaxed text-ink-faint">
-        <span className="font-medium text-ink-muted">
-          <span className="font-vernacular">{l("notice")}</span> / {en("notice")}:
-        </span>{" "}
-        <span className="font-vernacular">{l("notice_body")}</span> Every modification is
-        cryptographically hashed and permanently logged under Section 33 of the Land Revenue Code.
-      </p>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
-        <div className="flex flex-wrap items-center gap-2">
+      {blocked && (
+        <p className="px-5 pt-2.5 text-sm text-critical">
+          {canOverride
+            ? `${blockingCount} check failing — signing will be recorded as an override.`
+            : `${blockingCount} check failing — a Tehsildar must sign this record.`}
+        </p>
+      )}
+      <div className="flex items-stretch gap-2 px-5 py-3">
           <button
             type="button"
-            className="btn btn-danger h-9 text-xs"
+            className="btn btn-danger h-auto min-h-[3rem] flex-1 flex-col gap-0 py-1.5 text-sm leading-tight"
             onClick={onReject}
             disabled={busy || settled}
           >
-            <XCircle className="h-4 w-4" />
-            <span className="font-vernacular">{l("reject_record")}</span>{" "}
-            <span className="text-ink-faint">({en("reject_record")})</span>
+            <span className="font-vernacular">{l("reject_record")}</span>
+            <span className="text-xs opacity-80">{en("reject_record")}</span>
           </button>
           <button
             type="button"
-            className="btn btn-warn h-9 text-xs"
+            className="btn btn-warn h-auto min-h-[3rem] flex-1 flex-col gap-0 py-1.5 text-sm leading-tight"
             onClick={onFlag}
             disabled={busy || settled}
           >
-            <MapPinned className="h-4 w-4" />
-            <span className="font-vernacular">{l("send_field")}</span>{" "}
-            <span className="opacity-70">({en("send_field")})</span>
+            <span className="font-vernacular">{l("send_field")}</span>
+            <span className="text-xs opacity-80">{en("send_field")}</span>
           </button>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {blocked && (
-            <span className="hidden text-2xs text-critical sm:inline">
-              {canOverride
-                ? `${blockingCount} invariant failing — e-Sign is a recorded override`
-                : `${blockingCount} invariant failing — Tehsildar attestation required`}
-            </span>
-          )}
           <button
             type="button"
             onClick={onApprove}
             disabled={approveDisabled}
-            className="inline-flex h-9 items-center gap-2 rounded border border-emerald-900 bg-emerald-800 px-4 text-xs font-medium text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-0 rounded border border-emerald-900 bg-emerald-800 px-3 py-1.5 text-sm font-semibold leading-tight text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <Fingerprint className="h-4 w-4" />
             {settled ? (
               <span>
                 <span className="font-vernacular">
@@ -91,13 +75,12 @@ export default function AttestationFooter({
                 / {en(approvalStatus === "REJECTED" ? "record_rejected" : "title_certified")}
               </span>
             ) : (
-              <span>
-                <span className="font-vernacular">{l("esign_approve")}</span>{" "}
-                <span className="opacity-80">({en("esign_approve")})</span>
-              </span>
+              <>
+                <span className="font-vernacular">{l("esign_approve")}</span>
+                <span className="text-xs font-normal opacity-90">{en("esign_approve")}</span>
+              </>
             )}
           </button>
-        </div>
       </div>
     </div>
   );

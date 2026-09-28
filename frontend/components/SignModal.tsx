@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, Fingerprint, Lock, PenLine, ShieldCheck, X } from "lucide-react";
 import GovFooter from "@/components/gov/GovFooter";
 import { sqm, toNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import type { Draft } from "./ReviewForm";
 import type { KhataDetail, ValidationFinding } from "@/lib/types";
 
@@ -116,6 +117,7 @@ export default function SignModal({
               </header>
 
               <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <LegalNotice />
                 {blocking.length > 0 && (
                   <div
                     className="mb-4 rounded-md border p-3"
@@ -157,7 +159,7 @@ export default function SignModal({
                   </div>
                 )}
 
-                <h3 className="mb-2 text-xs uppercase tracking-wide text-ink-faint">
+                <h3 className="mb-2 text-xs text-ink-faint">
                   {diff.length === 0
                     ? "No values were changed"
                     : `${diff.length} ${diff.length === 1 ? "change" : "changes"} entering the ledger`}
@@ -170,7 +172,7 @@ export default function SignModal({
                 ) : (
                   <table className="w-full border-collapse text-sm">
                     <thead>
-                      <tr className="border-b border-rule text-left text-[11px] text-ink-faint">
+                      <tr className="border-b border-rule text-left text-xs text-ink-faint">
                         <th className="py-1.5 pr-3 font-normal">Field</th>
                         <th className="py-1.5 pr-3 font-normal">OCR value</th>
                         <th className="py-1.5 pr-3 font-normal">Corrected to</th>
@@ -191,7 +193,7 @@ export default function SignModal({
                               {row.after}
                             </span>
                           </td>
-                          <td className="py-1.5 text-[11px] text-ink-faint">
+                          <td className="py-1.5 text-xs text-ink-faint">
                             {reviewerId}
                             <br />
                             {role}
@@ -203,7 +205,7 @@ export default function SignModal({
                 )}
 
                 <label className="mt-4 block">
-                  <span className="mb-1 block text-[11px] text-ink-faint">
+                  <span className="mb-1 block text-xs text-ink-faint">
                     Note for the record{" "}
                     {canOverride && override ? "(required for an override)" : "(optional)"}
                   </span>
@@ -218,7 +220,7 @@ export default function SignModal({
               </div>
 
               <footer className="flex items-center justify-between gap-4 border-t border-rule px-5 py-3.5">
-                <p className="flex items-center gap-1.5 text-[11px] text-ink-faint">
+                <p className="flex items-center gap-1.5 text-xs text-ink-faint">
                   <ShieldCheck className="h-3.5 w-3.5" />
                   Signing as <span className="font-id text-ink-muted">{reviewerId}</span> · {role}
                 </p>
@@ -281,14 +283,14 @@ function SealScreen({ hash, khata }: { hash: string; khata: string }) {
         transition={{ delay: 0.15 }}
         className="w-full rounded-md border border-rule bg-panel-raised p-3"
       >
-        <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-ink-faint">
+        <div className="mb-1 flex items-center gap-1.5 text-2xs text-ink-faint">
           <Fingerprint className="h-3 w-3" />
           SHA-256 ledger head
         </div>
         <p className="break-all font-id text-xs text-verified">{hash}</p>
       </motion.div>
 
-      <p className="text-[11px] text-ink-faint">Returning to the review queue…</p>
+      <p className="text-xs text-ink-faint">Returning to the review queue…</p>
     </div>
   );
 }
@@ -366,4 +368,17 @@ function buildDiff(record: KhataDetail, draft: Draft): DiffRow[] {
     );
 
   return rows;
+}
+
+function LegalNotice() {
+  const { l, en } = useT();
+  return (
+    <p className="mb-4 rounded-md border border-rule bg-panel-raised px-4 py-3 text-sm text-ink-muted">
+      <span className="font-semibold text-ink">
+        <span className="font-vernacular">{l("notice")}</span> / {en("notice")}:
+      </span>{" "}
+      <span className="font-vernacular">{l("notice_body")}</span> {en("notice_body")} Every change
+      is cryptographically hashed and permanently logged.
+    </p>
+  );
 }

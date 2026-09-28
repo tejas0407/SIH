@@ -32,10 +32,9 @@ export default function ConfidenceRing({
         style={{ background: `conic-gradient(${color} ${pct}%, var(--rule) 0)` }}
       />
       <div className="absolute inset-[3px] flex flex-col items-center justify-center rounded-full bg-panel">
-        <span className="font-id text-[11px] font-semibold leading-none" style={{ color }}>
+        <span className="font-id text-sm font-semibold leading-none" style={{ color }}>
           {Math.round(pct)}
         </span>
-        <span className="text-[7px] uppercase tracking-wider text-ink-faint">{label}</span>
       </div>
     </div>
   );

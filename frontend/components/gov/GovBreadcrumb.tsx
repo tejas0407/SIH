@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, ChevronDown, ChevronRight, Download, Lock } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Download } from "lucide-react";
 import ConfidenceRing from "@/components/ConfidenceRing";
 import { exportUrl } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -30,7 +30,6 @@ const STATUS: Record<ApprovalStatus, { key: StringKey; tone: string; pulse?: boo
 export default function GovBreadcrumb({ record, blocking }: Props) {
   const v = record.village;
   const status = STATUS[record.approval_status];
-  const sig = useSessionSignature(record.khata_id);
   const { l, en } = useT();
 
   const chain: { label: string; code?: string }[] = [
@@ -43,11 +42,11 @@ export default function GovBreadcrumb({ record, blocking }: Props) {
   ];
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b border-rule bg-panel-raised px-4 py-1.5">
+    <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-rule bg-panel-raised px-5 py-2">
       {/* hierarchy chain */}
       <nav
         aria-label="Administrative hierarchy"
-        className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto text-2xs text-ink-muted"
+        className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto text-sm text-ink-muted"
       >
         {chain.map((seg, i) => (
           <span key={i} className="flex shrink-0 items-center gap-1">
@@ -66,25 +65,10 @@ export default function GovBreadcrumb({ record, blocking }: Props) {
         ))}
       </nav>
 
-      {/* secure session shield */}
-      <span
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-sm border px-2 py-1 text-2xs"
-        style={{
-          borderColor: "var(--verified-border)",
-          background: "var(--verified-wash)",
-          color: "var(--verified)",
-        }}
-        title="Simulated session signature (SHA-256 of the demo session context)"
-      >
-        <Lock className="h-3 w-3" />
-        <span className="font-vernacular">{l("secure_session")}</span> / {en("secure_session")}
-        <span className="font-id text-ink-faint">{sig ? `${sig.slice(0, 16)}…` : "……"}</span>
-      </span>
-
       {/* record status + score + export */}
       <div className="flex shrink-0 items-center gap-2">
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-2xs font-medium ${
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium ${
             status.pulse ? "pulse-amber" : ""
           }`}
           style={{
@@ -98,7 +82,7 @@ export default function GovBreadcrumb({ record, blocking }: Props) {
 
         {blocking.length > 0 && (
           <span
-            className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-2xs font-medium"
+            className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-sm font-medium"
             style={{
               color: "var(--critical)",
               borderColor: "var(--critical-border)",
@@ -110,7 +94,7 @@ export default function GovBreadcrumb({ record, blocking }: Props) {
           </span>
         )}
 
-        <ConfidenceRing value={record.confidence.total_confidence} size={34} />
+        <ConfidenceRing value={record.confidence.total_confidence} size={40} />
         <ExportMenu />
       </div>
     </div>
@@ -129,7 +113,7 @@ function ExportMenu() {
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="btn h-7 px-2 text-2xs">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="btn text-sm">
         <Download className="h-3 w-3" />
         <ExportLabel />
         <ChevronDown className="h-3 w-3 text-ink-faint" />
@@ -143,7 +127,7 @@ function ExportMenu() {
             transition={{ duration: 0.12 }}
             className="absolute right-0 z-30 mt-1 w-56 overflow-hidden rounded-md border border-rule bg-panel py-1 shadow-xl"
           >
-            <div className="px-3 py-1.5 text-2xs uppercase tracking-wide text-ink-faint">
+            <div className="px-3 py-1.5 text-2xs text-ink-faint">
               DILRMP dataset · approved records only
             </div>
             <a href={exportUrl("geojson")} className="block px-3 py-1.5 text-sm hover:bg-panel-raised">
@@ -161,26 +145,6 @@ function ExportMenu() {
 
 /** A genuine SHA-256, computed over the demo session context — labelled as
  *  simulated because the inputs are demo data, not a real signing key. */
-function useSessionSignature(khataId: string) {
-  const reviewerId = useAuth((s) => s.user?.login_id ?? "anon");
-  const [hash, setHash] = useState<string | null>(null);
-  useEffect(() => {
-    const seed = `${khataId}|${reviewerId}|${new Date().toISOString().slice(0, 10)}`;
-    if (!globalThis.crypto?.subtle) {
-      setHash(seed.split("").reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) >>> 0, 0).toString(16).padStart(16, "0").repeat(4));
-      return;
-    }
-    globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(seed)).then((buf) => {
-      setHash(
-        Array.from(new Uint8Array(buf))
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join(""),
-      );
-    });
-  }, [khataId, reviewerId]);
-  return hash;
-}
-
 function stateCode(villageCode: string | undefined): string | undefined {
   // Demo village codes look like "UP09MRT031"; surface the numeric state code.
   const m = villageCode?.match(/\d{2}/);

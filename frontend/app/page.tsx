@@ -111,16 +111,12 @@ export default function HomePage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <header className="mb-8">
-        <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-ink-faint">
-          Bhu-Validate AI · Intelligent Land Record Engine
-        </div>
         <h1 className="text-2xl">
           <span className="font-vernacular">{l("land_record_digitisation")}</span> / {en("land_record_digitisation")}
         </h1>
-        <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-          Upload a scanned Record of Rights — a Jamabandi, 7/12 extract or Khatauni. The system
-          straightens and cleans the page, reads the table, checks that the areas and shares add up,
-          and asks for a reviewer only where it cannot vouch for what it read.
+        <p className="mt-2 max-w-2xl text-base text-ink-muted">
+          Upload a scanned Jamabandi, 7/12 extract or Khatauni. The system reads it, checks the
+          totals, and sends it to you only if something needs a person to look.
         </p>
       </header>
 

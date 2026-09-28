@@ -222,7 +222,7 @@ export default function ReviewPage() {
       <GovBreadcrumb record={record} blocking={liveBlocking} />
 
       <div className="flex min-h-0 flex-1">
-        <section className="min-w-0 flex-[56]">
+        <section className="min-w-0 flex-[52]">
           <DocumentViewer
             pageUrls={
               record.page_urls?.length
@@ -235,10 +235,14 @@ export default function ReviewPage() {
           />
         </section>
 
-        <section className="flex min-w-0 flex-[44] flex-col border-l border-rule bg-surface">
-          <MetricsBar draft={draft} />
-          <DiscrepancyDrawer findings={liveBlocking} draft={draft} onHighlight={handleHighlight} />
-          <ReviewForm record={record} draft={draft} onChange={setDraft} tab={tab} onTabChange={setTab} />
+        <section className="flex min-w-0 flex-[48] flex-col border-l border-rule bg-surface">
+          {/* Checks and the form scroll together, so nothing gets squeezed to
+              nothing on a short laptop screen; the actions stay pinned below. */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <MetricsBar draft={draft} />
+            <DiscrepancyDrawer findings={liveBlocking} draft={draft} onHighlight={handleHighlight} />
+            <ReviewForm record={record} draft={draft} onChange={setDraft} tab={tab} onTabChange={setTab} />
+          </div>
           <AttestationFooter
             approvalStatus={record.approval_status}
             blockingCount={liveBlocking.length}

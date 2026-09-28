@@ -49,7 +49,7 @@ function Chooser() {
         <header className="mb-6 flex items-center gap-3">
           <EmblemPlaceholder className="h-10 w-10 shrink-0 text-ink" />
           <div className="leading-tight">
-            <div className="text-[9px] uppercase tracking-[0.14em] text-amber-500">
+            <div className="text-2xs text-amber-500">
               <span className="font-vernacular">{say("ministry")}</span> · {STRINGS.ministry.en}
             </div>
             <h1 className="text-xl font-semibold">

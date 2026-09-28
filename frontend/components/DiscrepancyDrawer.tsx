@@ -35,7 +35,7 @@ export default function DiscrepancyDrawer({ findings, draft, onHighlight }: Prop
         className="flex w-full items-center gap-2 px-3 py-2 text-left"
       >
         <AlertOctagon className="h-4 w-4 shrink-0 text-critical" />
-        <span className="text-xs font-semibold text-critical">
+        <span className="text-sm font-semibold text-critical">
           {findings.length} discrepanc{findings.length === 1 ? "y" : "ies"} detected
         </span>
         <ChevronDown
@@ -59,14 +59,13 @@ export default function DiscrepancyDrawer({ findings, draft, onHighlight }: Prop
                 {findings.map((finding) => (
                   <li
                     key={finding.code + finding.field_path}
-                    className="rounded-sm border px-2.5 py-1.5 text-xs leading-relaxed text-ink"
+                    className="rounded-sm border px-2.5 py-1.5 text-sm leading-relaxed text-ink"
                     style={{
                       borderColor: "var(--critical-border)",
                       background: "var(--panel)",
                     }}
                   >
-                    <span className="font-id text-[10px] text-critical">{finding.code}</span>
-                    <p className="mt-0.5">{explain(finding, draft)}</p>
+                    <p title={finding.code}>{explain(finding, draft)}</p>
                   </li>
                 ))}
               </ul>
@@ -74,7 +73,7 @@ export default function DiscrepancyDrawer({ findings, draft, onHighlight }: Prop
               <button
                 type="button"
                 onClick={onHighlight}
-                className="inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px] font-medium text-critical hover:bg-critical-wash"
+                className="inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 text-sm font-medium text-critical hover:bg-critical-wash"
                 style={{ borderColor: "var(--critical-border)" }}
               >
                 <Crosshair className="h-3.5 w-3.5" />

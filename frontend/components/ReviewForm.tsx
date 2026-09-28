@@ -64,7 +64,7 @@ export default function ReviewForm({ record, draft, onChange, tab, onTabChange }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div role="tablist" className="flex shrink-0 border-b border-rule bg-panel">
+      <div role="tablist" className="sticky top-0 z-10 flex shrink-0 border-b border-rule bg-panel">
         {TABS.map(({ id, label, icon: Icon }) => {
           const count =
             id === "parcels"
@@ -81,7 +81,7 @@ export default function ReviewForm({ record, draft, onChange, tab, onTabChange }
               role="tab"
               aria-selected={active}
               onClick={() => onTabChange(id)}
-              className={`relative flex items-center gap-1.5 px-3.5 py-2.5 text-xs transition-colors ${
+              className={`relative flex items-center gap-1.5 px-3.5 py-2.5 text-sm transition-colors ${
                 active ? "text-ink" : "text-ink-faint hover:text-ink-muted"
               }`}
             >
@@ -92,7 +92,7 @@ export default function ReviewForm({ record, draft, onChange, tab, onTabChange }
                 {en(label)}
               </span>
               {count > 0 && (
-                <span className="rounded-sm bg-panel-raised px-1 py-px font-id text-[10px] text-ink-muted">
+                <span className="rounded-sm bg-panel-raised px-1 py-px font-id text-xs text-ink-muted">
                   {count}
                 </span>
               )}
@@ -146,7 +146,7 @@ function MetadataTab({
   const { bi } = useT();
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <Section title={bi("location")}>
         <div className="grid grid-cols-2 gap-3">
           <ReadOnly label={bi("state")} value={v?.state ?? "—"} />
@@ -207,7 +207,7 @@ function MetadataTab({
           <span className="text-sm">C_total</span>
           <span className="font-id text-lg">{pct(record.confidence.total_confidence)}</span>
         </div>
-        <p className="mt-1 text-[11px] text-ink-faint">
+        <p className="mt-1 text-sm text-ink-faint">
           Records at or above {pct(record.confidence.threshold, 0)} with no failed invariant commit
           without a reviewer.
         </p>
@@ -277,10 +277,10 @@ function ParcelsTab({
   return (
     <div className="space-y-3">
       <div className="mb-1 flex items-baseline justify-between">
-        <h3 className="text-[10px] uppercase tracking-wide text-ink-faint">
+        <h3 className="text-xs text-ink-faint">
           <span className="font-vernacular">{l("parcel_ledger")}</span> / {en("parcel_ledger")}
         </h3>
-        <span className="font-id text-2xs text-ink-faint">
+        <span className="font-id text-xs text-ink-faint">
           Σ {parcelSum.toFixed(2)} m² ({hectares(parcelSum)} ha)
         </span>
       </div>
@@ -291,13 +291,13 @@ function ParcelsTab({
 
       {draft.parcels.length > 0 && (
         <div className="overflow-x-auto rounded-md border border-rule">
-          <table className="w-full min-w-[560px] border-collapse text-xs">
+          <table className="w-full min-w-[560px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-rule bg-panel-raised text-left align-bottom">
                 {ROR_COLS.map((c) => (
                   <th key={c} className="px-2 py-1.5 font-medium">
-                    <span className="block font-vernacular text-[11px] text-ink-muted">{l(c)}</span>
-                    <span className="block text-[10px] font-normal text-ink-faint">{en(c)}</span>
+                    <span className="block font-vernacular text-sm text-ink-muted">{l(c)}</span>
+                    <span className="block text-xs font-normal text-ink-faint">{en(c)}</span>
                   </th>
                 ))}
               </tr>
@@ -364,7 +364,7 @@ function ParcelsTab({
                         }
                       />
                       <span
-                        className="mt-0.5 block text-[9px]"
+                        className="mt-0.5 block text-xs"
                         style={{ color: BAND_COLOR[level] }}
                       >
                         {pct(minConf(parcel.confidence), 0)} conf.
@@ -379,7 +379,7 @@ function ParcelsTab({
                         mono
                         suffix="m²"
                       />
-                      <span className="mt-0.5 block font-id text-[9px] text-ink-faint">
+                      <span className="mt-0.5 block font-id text-xs text-ink-faint">
                         ≈ {hectares(parcel.plot_area_sqm)} ha
                       </span>
                     </td>
@@ -387,7 +387,7 @@ function ParcelsTab({
                     {/* 4 · Land classification */}
                     <td className="px-2 py-1.5">
                       <select
-                        className="w-full rounded-sm border border-rule bg-panel-raised px-1 py-1 text-[11px]"
+                        className="w-full rounded-sm border border-rule bg-panel-raised px-1 py-1 text-sm"
                         value={parcel.land_classification}
                         onChange={(e) => update(index, { land_classification: e.target.value })}
                       >
@@ -408,11 +408,11 @@ function ParcelsTab({
 
                     {/* 5 · ULPIN */}
                     <td className="px-2 py-1.5">
-                      <span className="font-id text-[10px] text-ink-muted">
+                      <span className="font-id text-xs text-ink-muted">
                         {parcel.ulpin ?? "—"}
                       </span>
                       {!parcel.ulpin && (
-                        <span className="block text-[9px] text-ink-faint">on survey</span>
+                        <span className="block text-xs text-ink-faint">on survey</span>
                       )}
                     </td>
 
@@ -428,13 +428,13 @@ function ParcelsTab({
         </div>
       )}
 
-      <button type="button" onClick={add} className="btn h-9 w-full text-xs">
+      <button type="button" onClick={add} className="btn h-11 w-full text-sm">
         <Plus className="h-4 w-4" />
         <span className="font-vernacular">{l("add_parcel")}</span> / {en("add_parcel")}
       </button>
 
       {record.parcels.length > 0 && (
-        <p className="text-[11px] text-ink-faint">
+        <p className="text-sm text-ink-faint">
           Focusing a cell, or the <span className="text-ink-muted">crosshair</span>, brings the
           parcel&rsquo;s position on the scan into view.
         </p>
@@ -459,7 +459,7 @@ function CellInput({
   return (
     <div className="relative">
       <input
-        className={`w-full rounded-sm border border-rule bg-panel-raised px-1.5 py-1 text-[11px] focus:border-focus focus:outline-none ${
+        className={`w-full rounded-sm border border-rule bg-panel-raised px-1.5 py-1 text-sm focus:border-focus focus:outline-none ${
           mono ? "font-id" : ""
         } ${suffix ? "pr-7" : ""}`}
         value={value}
@@ -467,7 +467,7 @@ function CellInput({
         onFocus={onFocus}
       />
       {suffix && (
-        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 font-id text-[9px] text-ink-faint">
+        <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 font-id text-xs text-ink-faint">
           {suffix}
         </span>
       )}
@@ -533,7 +533,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
           }}
         >
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[11px] text-ink-faint">Co-owner {index + 1}</span>
+            <span className="text-sm text-ink-faint">Co-owner {index + 1}</span>
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -548,7 +548,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
                     label: owner.owner_name_en || owner.owner_name_vernacular,
                   })
                 }
-                className="inline-flex items-center gap-1 rounded-sm border border-rule px-1.5 py-1 text-[10px] text-ink-muted hover:border-focus hover:text-focus disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-sm border border-rule px-1.5 py-1 text-xs text-ink-muted hover:border-focus hover:text-focus disabled:opacity-40"
               >
                 <Crosshair className="h-3 w-3" />
                 Locate
@@ -584,7 +584,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
               onValue={(x) => update(index, { owner_name_en: x })}
             />
             <div>
-              <label className="mb-1 block text-[11px] text-ink-faint">Relation</label>
+              <label className="mb-1 block text-sm text-ink-faint">Relation</label>
               <select
                 className="field text-sm"
                 value={owner.relation_type}
@@ -615,7 +615,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
               mono
             />
             <div>
-              <label className="mb-1 block text-[11px] text-ink-faint">Aadhaar (hashed on save)</label>
+              <label className="mb-1 block text-sm text-ink-faint">Aadhaar (hashed on save)</label>
               <input
                 className="field font-id text-sm"
                 inputMode="numeric"
@@ -630,7 +630,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
       ))}
 
       <div className="flex gap-2">
-        <button type="button" onClick={add} className="btn h-9 flex-1 text-xs">
+        <button type="button" onClick={add} className="btn h-11 flex-1 text-sm">
           <Plus className="h-4 w-4" />
           Add a co-owner
         </button>
@@ -638,7 +638,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
           type="button"
           onClick={splitEvenly}
           disabled={draft.owners.length === 0}
-          className="btn h-9 text-xs"
+          className="btn h-11 text-sm"
           title="Set every share to an equal fraction of the holding"
         >
           Split evenly
@@ -656,7 +656,7 @@ function NotesTab({ record }: { record: KhataDetail }) {
         <div className="rounded-md border border-dashed border-rule-strong p-5 text-center">
           <ScrollText className="mx-auto mb-2 h-6 w-6 text-ink-faint" />
           <p className="text-sm text-ink-muted">No marginal remarks were transcribed for this record.</p>
-          <p className="mx-auto mt-1 max-w-sm text-[11px] leading-relaxed text-ink-faint">
+          <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-ink-faint">
             When the Patwari&rsquo;s margin column carries a handwritten mutation note, the TrOCR
             handwriting engine transcribes it here with a confidence badge and a cropped image of the
             original strokes, side by side, for verification.
@@ -675,29 +675,29 @@ function NotesTab({ record }: { record: KhataDetail }) {
                 className="rounded-md border border-rule bg-panel-raised p-3 text-sm"
               >
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="font-id text-xs text-ink-muted">{entry.field_name}</span>
-                  <span className="text-[10px] text-ink-faint">
+                  <span className="font-id text-sm text-ink-muted">{entry.field_name}</span>
+                  <span className="text-xs text-ink-faint">
                     {entry.modified_by_user_id} · {entry.role}
                   </span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-baseline gap-2">
                   <span
-                    className="rounded-sm px-1.5 py-0.5 font-id text-xs line-through"
+                    className="rounded-sm px-1.5 py-0.5 font-id text-sm line-through"
                     style={{ background: "var(--critical-wash)", color: "var(--critical)" }}
                   >
                     {entry.raw_extracted_value ?? "empty"}
                   </span>
                   <span
-                    className="rounded-sm px-1.5 py-0.5 font-id text-xs"
+                    className="rounded-sm px-1.5 py-0.5 font-id text-sm"
                     style={{ background: "var(--verified-wash)", color: "var(--verified)" }}
                   >
                     {entry.corrected_value ?? "removed"}
                   </span>
                 </div>
                 {entry.reason && (
-                  <p className="mt-1.5 text-[11px] text-ink-faint">{entry.reason}</p>
+                  <p className="mt-1.5 text-sm text-ink-faint">{entry.reason}</p>
                 )}
-                <p className="mt-1 font-id text-[10px] text-ink-faint">
+                <p className="mt-1 font-id text-xs text-ink-faint">
                   {new Date(entry.timestamp).toLocaleString("en-IN")} ·{" "}
                   {entry.entry_hash.slice(0, 16)}…
                 </p>
@@ -729,8 +729,8 @@ function minConf(map: Record<string, number>): number {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-md border border-rule bg-panel p-3">
-      <h3 className="mb-2.5 text-[10px] uppercase tracking-wide text-ink-faint">{title}</h3>
+    <section className="rounded-md border border-rule bg-panel p-4">
+      <h3 className="mb-3 text-sm font-semibold text-ink">{title}</h3>
       {children}
     </section>
   );
@@ -739,7 +739,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function ReadOnly({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div className="mb-1 text-[11px] text-ink-faint">{label}</div>
+      <div className="mb-1 text-sm text-ink-muted">{label}</div>
       <div className={`rounded border border-rule bg-panel-raised px-2.5 py-1.5 text-sm ${mono ? "font-id" : ""}`}>
         {value}
       </div>
@@ -750,7 +750,7 @@ function ReadOnly({ label, value, mono }: { label: string; value: string; mono?:
 function ConfidenceBar({ label, weight, value }: { label: string; weight: number; value: number }) {
   return (
     <div className="mb-2">
-      <div className="mb-1 flex justify-between text-[11px]">
+      <div className="mb-1 flex justify-between text-sm">
         <span className="text-ink-faint">
           {label} <span className="tabular">×{weight}</span>
         </span>
@@ -795,8 +795,8 @@ function Field({
 
   return (
     <div>
-      <label className="mb-1 flex items-baseline justify-between gap-2 text-[11px]">
-        <span className="text-ink-faint">{label}</span>
+      <label className="mb-1 flex items-baseline justify-between gap-2 text-sm">
+        <span className="text-ink-muted">{label}</span>
         {confidence !== undefined && (
           <span className="tabular" style={{ color: BAND_COLOR[level!] }}>
             {pct(confidence, 0)}
@@ -819,19 +819,19 @@ function Field({
           title={level ? BAND_LABEL[level] : undefined}
         />
         {suffix && (
-          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 font-id text-[11px] text-ink-faint">
+          <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 font-id text-sm text-ink-faint">
             {suffix}
           </span>
         )}
       </div>
-      {hint && <p className="mt-1 text-[11px] text-critical">{hint}</p>}
+      {hint && <p className="mt-1 text-sm text-critical">{hint}</p>}
     </div>
   );
 }
 
 function Empty({ message }: { message: string }) {
   return (
-    <div className="rounded-md border border-dashed border-rule-strong p-5 text-center text-xs text-ink-faint">
+    <div className="rounded-md border border-dashed border-rule-strong p-5 text-center text-sm text-ink-faint">
       {message}
     </div>
   );

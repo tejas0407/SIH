@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Fingerprint, Scale, Sigma } from "lucide-react";
+import { ArrowRight, Scale, Sigma } from "lucide-react";
 import { AREA_TOLERANCE, SHARE_TOLERANCE, hectares, sqm, toNumber } from "@/lib/format";
 import type { Draft } from "./ReviewForm";
 
@@ -20,13 +20,11 @@ export default function MetricsBar({ draft }: { draft: Draft }) {
   const shareDelta = shareSum - 100;
   const sharesOk = Math.abs(shareDelta) <= SHARE_TOLERANCE && draft.owners.length > 0;
 
-  const ulpins = draft.parcels.map((p) => p.ulpin).filter(Boolean) as string[];
-
   return (
-    <div className="grid shrink-0 grid-cols-3 gap-px border-b border-rule bg-rule">
+    <div className="grid shrink-0 grid-cols-2 gap-px border-b border-rule bg-rule">
       <Card
-        icon={<Sigma className="h-3.5 w-3.5" />}
-        title="Parcel sum vs declared"
+        icon={<Sigma className="h-4 w-4" />}
+        title="Area: parcels add up to the total?"
         primary={`${sqm(parcelSum)} m²`}
         secondary={
           <span className="inline-flex items-center gap-1">
@@ -44,8 +42,8 @@ export default function MetricsBar({ draft }: { draft: Draft }) {
       />
 
       <Card
-        icon={<Scale className="h-3.5 w-3.5" />}
-        title="Ownership share"
+        icon={<Scale className="h-4 w-4" />}
+        title="Shares: owners add up to 100%?"
         primary={`${shareSum.toFixed(2)} %`}
         secondary={`${draft.owners.length} co-owner${draft.owners.length === 1 ? "" : "s"} · target 100.00%`}
         chip={
@@ -61,22 +59,6 @@ export default function MetricsBar({ draft }: { draft: Draft }) {
         }
       />
 
-      <Card
-        icon={<Fingerprint className="h-3.5 w-3.5" />}
-        title="ULPIN · Bhu-Aadhaar"
-        primary={
-          ulpins.length > 0 ? (
-            <span className="font-id text-[13px] tracking-tight">{ulpins[0]}</span>
-          ) : (
-            <span className="text-ink-faint">— pending survey</span>
-          )
-        }
-        secondary={
-          ulpins.length > 1
-            ? `+${ulpins.length - 1} more parcel ID${ulpins.length - 1 === 1 ? "" : "s"}`
-            : "14-character geohash + check digit"
-        }
-      />
     </div>
   );
 }
@@ -95,16 +77,16 @@ function Card({
   chip?: { text: string; tone: "ok" | "bad" };
 }) {
   return (
-    <div className="bg-panel px-3 py-2.5">
-      <div className="mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-ink-faint">
+    <div className="bg-panel px-5 py-3">
+      <div className="mb-1.5 flex items-center gap-1.5 text-sm text-ink-muted">
         {icon}
         {title}
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="font-id text-base leading-none">{primary}</span>
+        <span className="font-id text-lg leading-none">{primary}</span>
         {chip && (
           <span
-            className="shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium"
+            className="shrink-0 rounded-sm border px-2 py-0.5 text-sm font-medium"
             style={{
               color: chip.tone === "ok" ? "var(--verified)" : "var(--critical)",
               background: chip.tone === "ok" ? "var(--verified-wash)" : "var(--critical-wash)",
@@ -116,7 +98,7 @@ function Card({
           </span>
         )}
       </div>
-      <div className="mt-1 flex items-center gap-1 text-[11px] text-ink-faint">
+      <div className="mt-1.5 flex items-center gap-1 text-sm text-ink-muted">
         {chip?.tone === "bad" && <ArrowRight className="h-3 w-3" />}
         {secondary}
       </div>

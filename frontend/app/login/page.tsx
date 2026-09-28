@@ -71,18 +71,18 @@ function LoginForm() {
         <header className="mb-6 flex items-center gap-3">
           <EmblemPlaceholder className="h-10 w-10 shrink-0 text-ink" />
           <div className="leading-tight">
-            <div className="text-[9px] uppercase tracking-[0.14em] text-amber-500">
+            <div className="text-2xs text-amber-500">
               <span className="font-vernacular">{l("ministry")}</span> · Ministry of Rural Development
             </div>
             <div className="flex items-center gap-2">
               <span className="text-base font-semibold">
                 <span className="font-vernacular">{l("lrm")}</span> (DILRMP)
               </span>
-              <span className="rounded-sm bg-panel-raised px-1.5 py-px font-id text-[10px] text-ink-muted">
+              <span className="rounded-sm bg-panel-raised px-1.5 py-px font-id text-2xs text-ink-muted">
                 SIH26018
               </span>
             </div>
-            <div className="font-id text-[10px] text-ink-faint">
+            <div className="font-id text-2xs text-ink-faint">
               Bhu-Validate · prototype, not a live GoI service
             </div>
           </div>
@@ -94,7 +94,7 @@ function LoginForm() {
 
         <form onSubmit={onSubmit} className="space-y-4 rounded-lg border border-rule bg-panel p-5">
           <div>
-            <label htmlFor="login-id" className="mb-1 block text-[11px] text-ink-faint">
+            <label htmlFor="login-id" className="mb-1 block text-xs text-ink-faint">
               User ID
             </label>
             <input
@@ -110,7 +110,7 @@ function LoginForm() {
           </div>
 
           <div>
-            <label htmlFor="password" className="mb-1 block text-[11px] text-ink-faint">
+            <label htmlFor="password" className="mb-1 block text-xs text-ink-faint">
               Password
             </label>
             <input
@@ -164,7 +164,7 @@ function LoginForm() {
                 </span>
                 <button
                   type="button"
-                  className="shrink-0 rounded-sm px-1.5 py-0.5 text-[10px] text-focus hover:bg-focus-wash"
+                  className="shrink-0 rounded-sm px-1.5 py-0.5 text-2xs text-focus hover:bg-focus-wash"
                   onClick={() => fill(account.id, account.password)}
                 >
                   Use

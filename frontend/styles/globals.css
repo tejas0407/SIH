@@ -34,8 +34,8 @@
   --well: #e4e4e7;           /* zinc-200 — scan lightbox */
 
   --ink: #18181b;            /* zinc-900 */
-  --ink-muted: #52525b;      /* zinc-600 */
-  --ink-faint: #71717a;      /* zinc-500 */
+  --ink-muted: #3f3f46;      /* zinc-700 */
+  --ink-faint: #52525b;      /* zinc-600 */
 
   --rule: #e4e4e7;           /* zinc-200 */
   --rule-strong: #d4d4d8;    /* zinc-300 */
@@ -103,8 +103,8 @@ body {
   background: var(--surface);
   color: var(--ink);
   font-family: "Inter", "Noto Sans Devanagari", "Noto Sans Bengali", "Noto Sans Telugu", "Noto Sans Tamil", "Noto Sans Gujarati", "Noto Sans Kannada", system-ui, -apple-system, sans-serif;
-  font-size: 0.875rem; /* 14px at the default root size; scales with the A-/A/A+ control */
-  line-height: 1.5;
+  font-size: 1rem; /* 16px at the default root size; scales with the A-/A/A+ control */
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -148,10 +148,8 @@ body {
   padding: 2px 8px;
   border: 1.5px solid currentColor;
   border-radius: 3px;
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
   background: color-mix(in srgb, currentColor 10%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent);
 }
@@ -194,7 +192,7 @@ textarea {
   background: var(--panel-raised);
   border: 1px solid var(--rule-strong);
   border-radius: 4px;
-  padding: 7px 9px;
+  padding: 9px 12px;
   color: var(--ink);
   transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
 }
@@ -234,7 +232,8 @@ textarea {
   justify-content: center;
   gap: 6px;
   border-radius: 4px;
-  padding: 8px 14px;
+  min-height: 40px;
+  padding: 8px 16px;
   border: 1px solid var(--rule-strong);
   background: var(--panel-raised);
   color: var(--ink);
