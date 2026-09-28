@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 
 /**
- * NIC / MeitY-pattern footer. Carries the SIH attribution and — importantly —
- * states plainly that this is a hackathon prototype, not an official portal,
+ * NIC / MeitY-pattern footer. Carries the SIH attribution and states, once
+ * and quietly, that this is not an official portal,
  * and that GIGW / NIC are design patterns followed rather than a certification.
  */
 export default function GovFooter({ compact = false }: { compact?: boolean }) {
@@ -13,7 +13,7 @@ export default function GovFooter({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
       <p className="border-t border-rule px-4 py-1.5 text-center text-2xs text-ink-faint">
-        SIH 2026 · SIH26018 · DoLR, MoRD — prototype, not an official Government of India portal
+        SIH 2026 · SIH26018 · Department of Land Resources, Ministry of Rural Development
       </p>
     );
   }
@@ -25,7 +25,8 @@ export default function GovFooter({ compact = false }: { compact?: boolean }) {
         Department of Land Resources (DoLR), Ministry of Rural Development
       </p>
       <p className="mt-0.5 text-2xs text-ink-faint">
-        Prototype build 2.4.1 · follows GIGW&nbsp;3.0 / NIC design patterns · <span className="text-ink-muted">not an official Government of India portal</span> · Last updated: {updated}
+        Build 2.4.1 · follows GIGW&nbsp;3.0 / NIC design patterns · not an official Government of
+        India portal · Last updated: {updated}
       </p>
     </footer>
   );

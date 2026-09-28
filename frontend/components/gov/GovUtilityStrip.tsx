@@ -6,8 +6,7 @@ import { LANGUAGES, useLang, useT, type Lang } from "@/lib/i18n";
 
 /**
  * GIGW-3.0 style utility strip: government identity on the left, the standard
- * accessibility and utility controls on the right. A persistent prototype tag
- * makes clear this is a Smart India Hackathon build, not a live GoI service.
+ * accessibility and language controls on the right.
  */
 export default function GovUtilityStrip() {
   const { fontScale, highContrast, larger, smaller, resetFont, toggleContrast } = useA11y();
@@ -22,9 +21,6 @@ export default function GovUtilityStrip() {
       <div className="flex min-w-0 items-center gap-2 truncate">
         <span className="font-medium text-slate-200">
           <span className="font-vernacular">{l("gov_india")}</span> | Government of India
-        </span>
-        <span className="ml-1 shrink-0 rounded-sm border border-amber-500/40 bg-amber-500/10 px-1 py-px text-2xs font-semibold text-amber-400">
-          SIH 2026 Prototype
         </span>
       </div>
 

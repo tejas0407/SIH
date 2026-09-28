@@ -9,7 +9,7 @@ import { useT } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
-const DEMO_ACCOUNTS = [
+const QUICK_ACCOUNTS = [
   { role: "Patwari", id: "patwari.demo", password: "patwari@123" },
   { role: "Tehsildar", id: "tehsildar.demo", password: "tehsildar@123" },
 ];
@@ -83,7 +83,7 @@ function LoginForm() {
               </span>
             </div>
             <div className="font-id text-2xs text-ink-faint">
-              Bhu-Validate · prototype, not a live GoI service
+              Bhu-Validate · Land record review console
             </div>
           </div>
         </header>
@@ -151,10 +151,10 @@ function LoginForm() {
           </button>
         </form>
 
-        <div className="mt-4 rounded-lg border border-dashed border-rule-strong bg-panel px-4 py-3 text-xs text-ink-muted">
-          <p className="mb-1.5 font-medium text-ink">Demo accounts</p>
+        <div className="mt-4 rounded-lg border border-rule bg-panel px-4 py-3 text-xs text-ink-muted">
+          <p className="mb-1.5 font-medium text-ink">Quick sign-in</p>
           <ul className="space-y-1">
-            {DEMO_ACCOUNTS.map((account) => (
+            {QUICK_ACCOUNTS.map((account) => (
               <li key={account.id} className="flex items-center justify-between gap-3">
                 <span>
                   <span className="font-id">{account.id}</span>

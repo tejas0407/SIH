@@ -14,7 +14,7 @@ export default function EmblemPlaceholder({ className = "h-10 w-10" }: { classNa
       aria-label="Stylised national emblem placeholder"
       fill="none"
     >
-      <title>National emblem placeholder (prototype)</title>
+      <title>National emblem</title>
       {/* abacus / base */}
       <rect x="14" y="40" width="36" height="4" rx="1" fill="currentColor" />
       <rect x="18" y="44" width="28" height="3" rx="1" fill="currentColor" opacity="0.6" />
