@@ -120,6 +120,8 @@ export interface KhataDetail {
   owners: Owner[];
   validation_errors: ValidationFinding[];
   document_url: string | null;
+  /** One displayable image per page, in order. Box `page` indexes this list. */
+  page_urls?: string[];
   page_count: number;
   audit_trail: AuditEntry[];
 }

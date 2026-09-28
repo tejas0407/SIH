@@ -33,6 +33,13 @@ logger = logging.getLogger(__name__)
 BBox = tuple[int, int, int, int]  # (ymin, xmin, ymax, xmax)
 
 
+def encode_png(image: np.ndarray) -> bytes:
+    ok, encoded = cv2.imencode(".png", image)
+    if not ok:
+        raise ValueError("could not PNG-encode page image")
+    return encoded.tobytes()
+
+
 @dataclass
 class OcrToken:
     text: str
@@ -880,11 +887,9 @@ class LandRecordPipeline:
              "bbox": {"ymin": z.bbox[0], "xmin": z.bbox[1], "ymax": z.bbox[2], "xmax": z.bbox[3]}}
             for z in all_zones
         ]
-        # The deskewed first page, PNG-encoded: the image every bbox above is
-        # measured against, and one a browser can display even when the upload
-        # was a PDF or TIFF. Callers must pop it before serialising the result.
-        if artifacts:
-            ok, encoded = cv2.imencode(".png", artifacts[0].original)
-            if ok:
-                result["preview_png"] = encoded.tobytes()
+        # Each deskewed page, PNG-encoded: the images every bbox above is
+        # measured against (bbox "page" indexes this list), and ones a browser
+        # can display even when the upload was a PDF or TIFF. Callers must pop
+        # this before serialising the result.
+        result["preview_pngs"] = [encode_png(page.original) for page in artifacts]
         return result

@@ -1,13 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Maximize2, Minus, Plus, Scan, SquareDashed } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Minus,
+  Plus,
+  Scan,
+  SquareDashed,
+} from "lucide-react";
 import { BAND_COLOR, band } from "@/lib/format";
 import { useReviewStore, type FocusTarget } from "@/lib/store";
 import type { BBox } from "@/lib/types";
 
 interface Props {
-  imageUrl: string | null;
+  /** One image per page, in order; a box's `bbox.page` indexes this list. */
+  pageUrls: string[];
   boxes: FocusTarget[];
   /** Natural pixel size of the scan; boxes are in these coordinates. */
   naturalWidth?: number;
@@ -17,9 +26,17 @@ interface Props {
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 8;
 
-export default function DocumentViewer({ imageUrl, boxes }: Props) {
+export default function DocumentViewer({ pageUrls, boxes }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+
+  const pageCount = pageUrls.length;
+  const [page, setPage] = useState(0);
+  const imageUrl = pageUrls[Math.min(page, Math.max(pageCount - 1, 0))] ?? null;
+  const goToPage = useCallback(
+    (next: number) => setPage(Math.min(Math.max(next, 0), Math.max(pageCount - 1, 0))),
+    [pageCount],
+  );
 
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -50,8 +67,16 @@ export default function DocumentViewer({ imageUrl, boxes }: Props) {
    * already is, because yanking the view backwards mid-correction is
    * disorienting. Small boxes get more magnification than large ones.
    */
+  // A field focused on the right may sit on another page: turn to it first.
+  // The zoom effect below then re-runs once that page's image has loaded.
+  useEffect(() => {
+    const target = focused?.bbox?.page;
+    if (target != null && target !== page && target < pageCount) setPage(target);
+  }, [focused]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!focused?.bbox) return;
+    if ((focused.bbox.page ?? 0) !== page) return;
     const container = containerRef.current?.getBoundingClientRect();
     if (!container || !size.w) return;
 
@@ -72,7 +97,7 @@ export default function DocumentViewer({ imageUrl, boxes }: Props) {
       x: container.width / 2 - cx * target,
       y: container.height / 2 - cy * target,
     });
-  }, [focused, size.w]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [focused, size.w, page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const zoomAt = (factor: number, clientX?: number, clientY?: number) => {
     const container = containerRef.current?.getBoundingClientRect();
@@ -113,7 +138,26 @@ export default function DocumentViewer({ imageUrl, boxes }: Props) {
 
   const stopDrag = () => setDragging(false);
 
-  const visible = useMemo(() => boxes.filter((b) => b.bbox), [boxes]);
+  const visible = useMemo(
+    () => boxes.filter((b) => b.bbox && (b.bbox.page ?? 0) === page),
+    [boxes, page],
+  );
+  const total = useMemo(() => boxes.filter((b) => b.bbox).length, [boxes]);
+
+  // PageUp / PageDown turn pages unless the reviewer is typing in a field.
+  useEffect(() => {
+    if (pageCount < 2) return;
+    const onKey = (event: KeyboardEvent) => {
+      const el = event.target;
+      if (el instanceof Element && el.closest("input, textarea, select, [contenteditable]")) return;
+      if (event.key === "PageDown") goToPage(page + 1);
+      else if (event.key === "PageUp") goToPage(page - 1);
+      else return;
+      event.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [page, pageCount, goToPage]);
 
   return (
     <div className="relative flex h-full flex-col bg-well">
@@ -204,10 +248,38 @@ export default function DocumentViewer({ imageUrl, boxes }: Props) {
             >
               <SquareDashed className="h-4 w-4" />
             </IconButton>
+            {pageCount > 1 && (
+              <>
+                <div className="mx-1 h-4 w-px bg-white/20" />
+                <IconButton
+                  label="Previous page (PageUp)"
+                  onClick={() => goToPage(page - 1)}
+                  disabled={page === 0}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </IconButton>
+                <span
+                  className="min-w-[4.5rem] text-center text-2xs tabular text-white/80"
+                  aria-live="polite"
+                >
+                  Page {page + 1} / {pageCount}
+                </span>
+                <IconButton
+                  label="Next page (PageDown)"
+                  onClick={() => goToPage(page + 1)}
+                  disabled={page >= pageCount - 1}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </IconButton>
+              </>
+            )}
           </div>
 
           <div className="pointer-events-none rounded bg-black/55 px-2.5 py-1.5 text-2xs text-white/70 backdrop-blur">
-            {visible.length} fields located · drag to pan · ctrl-scroll to zoom
+            {pageCount > 1
+              ? `${visible.length} of ${total} fields on this page`
+              : `${visible.length} fields located`}{" "}
+            · drag to pan · ctrl-scroll to zoom
           </div>
         </div>
       </div>
@@ -301,11 +373,13 @@ function IconButton({
   label,
   onClick,
   pressed,
+  disabled,
 }: {
   children: React.ReactNode;
   label: string;
   onClick: () => void;
   pressed?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -313,8 +387,9 @@ function IconButton({
       title={label}
       aria-label={label}
       aria-pressed={pressed}
+      disabled={disabled}
       onClick={onClick}
-      className={`rounded p-1.5 text-white/85 transition-colors hover:bg-white/15 ${
+      className={`rounded p-1.5 text-white/85 transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent ${
         pressed ? "bg-white/15" : ""
       }`}
     >

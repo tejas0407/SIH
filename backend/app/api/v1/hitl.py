@@ -60,40 +60,44 @@ logger = logging.getLogger(__name__)
 _BROWSER_IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 
-def _scan_url(document: Document) -> str:
-    """Presigned URL of an image of the scan the reviewer's browser can show.
+def _page_urls(document: Document) -> list[str]:
+    """Presigned URLs, one per page, of images the reviewer's browser can show.
 
-    Prefers the first-page PNG the worker stores after processing, which is
-    also the exact image the field bounding boxes were measured on. A PDF or
-    TIFF processed before previews existed gets one rendered here once, with
-    the same load + deskew steps the pipeline uses, and cached in the store.
+    Prefers the per-page PNGs the worker stores after processing, which are
+    also the exact images the field bounding boxes were measured on. A
+    document processed before all pages had previews (older uploads kept only
+    page 1, or none) gets them rendered here once, with the pipeline's own
+    load + deskew steps, and cached in the store.
     """
     store = get_store()
-    preview = preview_path(document.document_id)
-    if store.exists(preview):
-        return store.presigned_url(preview, expires_minutes=120)
+    pages = max(document.page_count or 1, 1)
+    paths = [preview_path(document.document_id, n) for n in range(1, pages + 1)]
 
-    if Path(document.storage_path).suffix.lower() in _BROWSER_IMAGE_SUFFIXES:
-        return store.presigned_url(document.storage_path, expires_minutes=120)
+    if all(store.exists(p) for p in paths):
+        return [store.presigned_url(p, expires_minutes=120) for p in paths]
+
+    if Path(document.storage_path).suffix.lower() in _BROWSER_IMAGE_SUFFIXES and pages == 1:
+        return [store.presigned_url(document.storage_path, expires_minutes=120)]
 
     import cv2
 
-    from app.services.cv_pipeline import ImagePreprocessor
+    from app.services.cv_pipeline import ImagePreprocessor, encode_png
 
     suffix = Path(document.storage_path).suffix or ".pdf"
+    preprocessor = ImagePreprocessor()
     with tempfile.TemporaryDirectory() as tmp:
         local = store.download_to(document.storage_path, Path(tmp) / f"scan{suffix}")
-        preprocessor = ImagePreprocessor()
-        page = preprocessor.load_pages(local)[0]
+        rendered = preprocessor.load_pages(local)
+    paths = []
+    for number, page in enumerate(rendered, start=1):
         if page.ndim == 3:
             page = cv2.cvtColor(page, cv2.COLOR_BGR2GRAY)
         deskewed, _ = preprocessor.deskew(page)
-    ok, encoded = cv2.imencode(".png", deskewed)
-    if not ok:
-        raise ValueError("could not encode preview")
-    bucket, _, object_name = preview.partition("/")
-    store.put_bytes(bucket, object_name, encoded.tobytes(), "image/png")
-    return store.presigned_url(preview, expires_minutes=120)
+        path = preview_path(document.document_id, number)
+        bucket, _, object_name = path.partition("/")
+        store.put_bytes(bucket, object_name, encode_png(deskewed), "image/png")
+        paths.append(path)
+    return [store.presigned_url(p, expires_minutes=120) for p in paths]
 
 
 def _confidence(khata: KhataRecord) -> ConfidenceBreakdown:
@@ -182,13 +186,12 @@ async def get_record(
         await db.execute(select(Document).where(Document.document_id == khata.document_id))
     ).scalar_one_or_none()
 
-    document_url = None
+    page_urls: list[str] = []
     if document:
         try:
-            document_url = await run_in_threadpool(_scan_url, document)
+            page_urls = await run_in_threadpool(_page_urls, document)
         except Exception:  # noqa: BLE001 - the form must still open if MinIO blips
             logger.warning("no viewable scan for %s", document.document_id, exc_info=True)
-            document_url = None
 
     trail = (
         await db.execute(
@@ -212,8 +215,9 @@ async def get_record(
         parcels=[ParcelOut.model_validate(p) for p in khata.parcels],
         owners=[OwnerOut.model_validate(o) for o in khata.owners],
         validation_errors=khata.validation_errors or [],
-        document_url=document_url,
-        page_count=document.page_count if document else 1,
+        document_url=page_urls[0] if page_urls else None,
+        page_urls=page_urls,
+        page_count=len(page_urls) or (document.page_count if document else 1),
         audit_trail=[AuditEntry.model_validate(a) for a in trail],
     )
 

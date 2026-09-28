@@ -223,7 +223,16 @@ export default function ReviewPage() {
 
       <div className="flex min-h-0 flex-1">
         <section className="min-w-0 flex-[56]">
-          <DocumentViewer imageUrl={record.document_url} boxes={boxes} />
+          <DocumentViewer
+            pageUrls={
+              record.page_urls?.length
+                ? record.page_urls
+                : record.document_url
+                  ? [record.document_url]
+                  : []
+            }
+            boxes={boxes}
+          />
         </section>
 
         <section className="flex min-w-0 flex-[44] flex-col border-l border-rule bg-surface">

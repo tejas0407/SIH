@@ -88,9 +88,9 @@ class ObjectStore:
         )
 
 
-def preview_path(document_id) -> str:
-    """Where the browser-displayable first-page PNG of a document lives."""
-    return f"{settings.MINIO_BUCKET_TILES}/{document_id}/page-1.png"
+def preview_path(document_id, page: int = 1) -> str:
+    """Where the browser-displayable PNG of one page (1-based) of a document lives."""
+    return f"{settings.MINIO_BUCKET_TILES}/{document_id}/page-{page}.png"
 
 
 def sha256_bytes(data: bytes) -> str:

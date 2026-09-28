@@ -218,6 +218,8 @@ class KhataDetail(BaseModel):
     owners: list[OwnerOut]
     validation_errors: list[ValidationFinding]
     document_url: str | None = None
+    # One displayable image per page, in order; document_url is the first.
+    page_urls: list[str] = []
     page_count: int = 1
     audit_trail: list[AuditEntry] = Field(default_factory=list)
 
