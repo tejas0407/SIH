@@ -30,7 +30,7 @@ from app.models.land import (
     Village,
 )
 from app.services.audit import GENESIS, compute_entry_hash
-from app.services.storage import get_store
+from app.services.storage import get_store, preview_path
 from app.services.ulpin import generate_ulpin
 from app.services.validator import LandRecordValidator
 from app.workers.celery_app import celery_app
@@ -124,6 +124,18 @@ def process_document(self, document_id: str) -> dict:
         )
         extraction = pipeline.process(local_path, on_step=on_step)
         document.page_count = extraction.get("page_count", 1)
+
+        preview = extraction.pop("preview_png", None)
+        if preview:
+            try:
+                get_store().put_bytes(
+                    settings.MINIO_BUCKET_TILES,
+                    preview_path(document.document_id).partition("/")[2],
+                    preview,
+                    "image/png",
+                )
+            except Exception:  # noqa: BLE001 - a missing preview must not fail the job
+                logger.warning("could not store preview for %s", document.document_id, exc_info=True)
 
         # ---------------- persist ----------------
         _set_status(session, document, ProcessingStatus.VALIDATING, "Running checks", 90)

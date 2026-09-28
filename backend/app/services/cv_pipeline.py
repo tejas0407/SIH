@@ -880,4 +880,11 @@ class LandRecordPipeline:
              "bbox": {"ymin": z.bbox[0], "xmin": z.bbox[1], "ymax": z.bbox[2], "xmax": z.bbox[3]}}
             for z in all_zones
         ]
+        # The deskewed first page, PNG-encoded: the image every bbox above is
+        # measured against, and one a browser can display even when the upload
+        # was a PDF or TIFF. Callers must pop it before serialising the result.
+        if artifacts:
+            ok, encoded = cv2.imencode(".png", artifacts[0].original)
+            if ok:
+                result["preview_png"] = encoded.tobytes()
         return result

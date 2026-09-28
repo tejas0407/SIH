@@ -73,11 +73,24 @@ class ObjectStore:
         self.client.fget_object(bucket, object_name, str(destination))
         return destination
 
+    def exists(self, storage_path: str) -> bool:
+        bucket, _, object_name = storage_path.partition("/")
+        try:
+            self.client.stat_object(bucket, object_name)
+            return True
+        except S3Error:
+            return False
+
     def presigned_url(self, storage_path: str, expires_minutes: int = 60) -> str:
         bucket, _, object_name = storage_path.partition("/")
         return self.public_client.presigned_get_object(
             bucket, object_name, expires=timedelta(minutes=expires_minutes)
         )
+
+
+def preview_path(document_id) -> str:
+    """Where the browser-displayable first-page PNG of a document lives."""
+    return f"{settings.MINIO_BUCKET_TILES}/{document_id}/page-1.png"
 
 
 def sha256_bytes(data: bytes) -> str:

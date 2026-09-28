@@ -10,11 +10,15 @@ unless they hold the Tehsildar role and say so explicitly.
 
 from __future__ import annotations
 
+import logging
+import tempfile
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,11 +49,51 @@ from app.schemas.records import (
     VillageOut,
 )
 from app.services import audit as audit_service
-from app.services.storage import get_store
+from app.services.storage import get_store, preview_path
 from app.services.validator import LandRecordValidator
 from app.workers.queue import remove_from_hitl_queue
 
 router = APIRouter(prefix="/hitl", tags=["hitl"])
+logger = logging.getLogger(__name__)
+
+# Formats an <img> tag can display as uploaded.
+_BROWSER_IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
+
+
+def _scan_url(document: Document) -> str:
+    """Presigned URL of an image of the scan the reviewer's browser can show.
+
+    Prefers the first-page PNG the worker stores after processing, which is
+    also the exact image the field bounding boxes were measured on. A PDF or
+    TIFF processed before previews existed gets one rendered here once, with
+    the same load + deskew steps the pipeline uses, and cached in the store.
+    """
+    store = get_store()
+    preview = preview_path(document.document_id)
+    if store.exists(preview):
+        return store.presigned_url(preview, expires_minutes=120)
+
+    if Path(document.storage_path).suffix.lower() in _BROWSER_IMAGE_SUFFIXES:
+        return store.presigned_url(document.storage_path, expires_minutes=120)
+
+    import cv2
+
+    from app.services.cv_pipeline import ImagePreprocessor
+
+    suffix = Path(document.storage_path).suffix or ".pdf"
+    with tempfile.TemporaryDirectory() as tmp:
+        local = store.download_to(document.storage_path, Path(tmp) / f"scan{suffix}")
+        preprocessor = ImagePreprocessor()
+        page = preprocessor.load_pages(local)[0]
+        if page.ndim == 3:
+            page = cv2.cvtColor(page, cv2.COLOR_BGR2GRAY)
+        deskewed, _ = preprocessor.deskew(page)
+    ok, encoded = cv2.imencode(".png", deskewed)
+    if not ok:
+        raise ValueError("could not encode preview")
+    bucket, _, object_name = preview.partition("/")
+    store.put_bytes(bucket, object_name, encoded.tobytes(), "image/png")
+    return store.presigned_url(preview, expires_minutes=120)
 
 
 def _confidence(khata: KhataRecord) -> ConfidenceBreakdown:
@@ -141,8 +185,9 @@ async def get_record(
     document_url = None
     if document:
         try:
-            document_url = get_store().presigned_url(document.storage_path, expires_minutes=120)
+            document_url = await run_in_threadpool(_scan_url, document)
         except Exception:  # noqa: BLE001 - the form must still open if MinIO blips
+            logger.warning("no viewable scan for %s", document.document_id, exc_info=True)
             document_url = None
 
     trail = (
