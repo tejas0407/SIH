@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run on the VM from the repo root:  bash deploy/oracle/setup.sh
+# Run on any Ubuntu VM (Azure, Oracle, ...) from the repo root:  bash deploy/oracle/setup.sh
 #
 # Installs Docker, opens ports 80/443 in the host firewall, writes the .env
 # (public host + secrets, generated once and kept on re-runs) and builds and
@@ -13,11 +13,13 @@ if ! command -v docker >/dev/null; then
   sudo usermod -aG docker "$USER"
 fi
 
-# Oracle's Ubuntu images ship an iptables REJECT rule ahead of everything but
-# SSH, so opening the ports in the VCN security list alone is not enough.
+# Some images (Oracle's Ubuntu, for one) ship an iptables REJECT rule ahead of
+# everything but SSH, so opening the ports in the cloud firewall alone is not
+# enough. Insert the ACCEPT at the top of INPUT: that works whether or not such
+# a rule exists (a fixed position fails on images with a short or empty chain).
 for port in 80 443; do
   if ! sudo iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null; then
-    sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport "$port" -j ACCEPT
+    sudo iptables -I INPUT 1 -p tcp --dport "$port" -j ACCEPT
   fi
 done
 if command -v netfilter-persistent >/dev/null; then
