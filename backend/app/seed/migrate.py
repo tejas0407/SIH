@@ -16,7 +16,7 @@ Run inside the backend image:
 
     python -m app.seed.migrate
 
-On DigitalOcean, wire this in as a PRE_DEPLOY job (see .do/app.yaml) so it
+On DigitalOcean, wire this in as a PRE_DEPLOY job (see deploy/digitalocean/app.yaml) so it
 runs automatically before each new version goes live. The `postgis` extension
 must be enabled on the target database beforehand — on a DigitalOcean Managed
 Database this is a one-time toggle under Settings -> Extensions, not

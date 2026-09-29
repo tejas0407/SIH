@@ -1,14 +1,11 @@
 # DigitalOcean App Platform spec for SIH26018 (DILRMP land-record system).
 #
-# App Platform's auto-detection only looks for package.json / requirements.txt
-# / a Dockerfile at the repo root; this project keeps its Dockerfiles under
-# docker/ and builds them against the repo root as context (they COPY
-# backend/ and frontend/ explicitly), which is why "no components detected"
-# shows up without this file. Deploy with it directly instead of the
-# create-app wizard:
+# App Platform's auto-detection only looks at the repo root, but the backend
+# and frontend each build from their own folder, so it reports "no components
+# detected". Deploy from this spec instead of the create-app wizard:
 #
-#   doctl apps create --spec .do/app.yaml
-#   doctl apps update <app-id> --spec .do/app.yaml     # to apply changes later
+#   doctl apps create --spec deploy/digitalocean/app.yaml
+#   doctl apps update <app-id> --spec deploy/digitalocean/app.yaml
 #
 # Before the first deploy:
 #   1. Create a DigitalOcean Space (Spaces Object Storage) for scan storage —
@@ -41,8 +38,8 @@ databases:
 
 services:
   - name: backend
-    dockerfile_path: docker/backend.Dockerfile
-    source_dir: /
+    dockerfile_path: backend/Dockerfile
+    source_dir: backend
     github:
       repo: tejas0407/SIH
       branch: main
@@ -77,7 +74,7 @@ services:
       - key: CELERY_RESULT_BACKEND
         value: ${land-records-redis.DATABASE_URL}
         type: SECRET
-      # Object storage: point this at a DigitalOcean Space, not local MinIO.
+      # Object storage: point this at a DigitalOcean Space (S3-compatible).
       - key: MINIO_ENDPOINT
         value: "REPLACE_ME.digitaloceanspaces.com"
       - key: MINIO_PUBLIC_ENDPOINT
@@ -100,8 +97,8 @@ services:
         value: "true"
 
   - name: celery-worker
-    dockerfile_path: docker/backend.Dockerfile
-    source_dir: /
+    dockerfile_path: backend/Dockerfile
+    source_dir: backend
     github:
       repo: tejas0407/SIH
       branch: main
@@ -112,8 +109,8 @@ services:
     envs: *backend_envs
 
   - name: frontend
-    dockerfile_path: docker/frontend.Dockerfile
-    source_dir: /
+    dockerfile_path: frontend/Dockerfile
+    source_dir: frontend
     github:
       repo: tejas0407/SIH
       branch: main
@@ -131,8 +128,8 @@ services:
 
 jobs:
   - name: migrate
-    dockerfile_path: docker/backend.Dockerfile
-    source_dir: /
+    dockerfile_path: backend/Dockerfile
+    source_dir: backend
     github:
       repo: tejas0407/SIH
       branch: main

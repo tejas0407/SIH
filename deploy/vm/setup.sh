@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run on any Ubuntu VM (Azure, Oracle, ...) from the repo root:  bash deploy/oracle/setup.sh
+# Run on any Ubuntu VM (Azure, Oracle, ...) from the repo root:  bash deploy/vm/setup.sh
 #
 # Installs Docker, opens ports 80/443 in the host firewall, writes the .env
 # (public host + secrets, generated once and kept on re-runs) and builds and

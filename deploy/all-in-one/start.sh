@@ -24,7 +24,7 @@ if [[ -n "${LOCAL_HTTP:-}" ]]; then
 fi
 
 # Fallback secrets for a throwaway run. Set both explicitly for any deployment
-# with a persistent data volume (deploy/oracle/setup.sh does): a salt that
+# with a persistent data volume (deploy/vm/setup.sh does): a salt that
 # changes between boots no longer matches the hashes already stored.
 export JWT_SECRET_KEY="${JWT_SECRET_KEY:-$(python -c 'import secrets;print(secrets.token_hex(32))')}"
 export AADHAAR_HASH_SALT="${AADHAAR_HASH_SALT:-$(python -c 'import secrets;print(secrets.token_hex(32))')}"

@@ -1,11 +1,11 @@
-# Always-on deployment for a single VM (built for Oracle Cloud's Always Free
-# Ampere A1 instance, but nothing here is Oracle-specific).
+# Always-on deployment for a single Ubuntu VM (runs live on Azure for Students;
+# nothing here is provider-specific).
 #
-#   app    the single-container image from docker/single/Dockerfile: PostGIS,
+#   app    the single-container image from deploy/all-in-one/Dockerfile: PostGIS,
 #          Redis, MinIO, backend, Celery worker and frontend behind nginx:7860
 #   caddy  public HTTPS on 80/443 with an automatic Let's Encrypt certificate
 #
-# deploy/oracle/setup.sh writes the .env next to this file and starts it.
+# deploy/vm/setup.sh writes the .env next to this file and starts it.
 
 name: bhu-validate
 
@@ -13,7 +13,7 @@ services:
   app:
     build:
       context: ../..
-      dockerfile: docker/single/Dockerfile
+      dockerfile: deploy/all-in-one/Dockerfile
     image: bhu-validate:latest
     restart: always
     environment:

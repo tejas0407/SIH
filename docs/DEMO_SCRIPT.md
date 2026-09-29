@@ -4,8 +4,8 @@ A five-minute run for evaluators. Start the stack and seed the data first:
 
 ```bash
 cp .env.example .env
-docker compose -f docker/docker-compose.yml --env-file .env up --build -d
-docker compose -f docker/docker-compose.yml exec backend python -m app.seed.load_demo
+docker compose up --build -d
+docker compose exec backend python -m app.seed.load_demo
 ```
 
 The seed also creates two reviewer accounts and prints one line per demo case;
@@ -57,7 +57,7 @@ flatbed.
 Show what preprocessing did to it:
 
 ```bash
-docker compose -f docker/docker-compose.yml exec backend python -c "
+docker compose exec backend python -c "
 from app.seed.generate_scans import case_a_clean, degrade
 from app.services.cv_pipeline import ImagePreprocessor, DocumentLayoutSegmenter
 p = ImagePreprocessor(); d = degrade(case_a_clean(), angle=-6.5)
@@ -115,7 +115,7 @@ curl -s -H "Authorization: Bearer $TOKEN" localhost:8000/api/v1/hitl/<khata_id>/
 Try to rewrite history and Postgres itself refuses:
 
 ```bash
-docker compose -f docker/docker-compose.yml exec db \
+docker compose exec db \
   psql -U dilrmp -d land_records -c "UPDATE audit_logs SET corrected_value='0';"
 # ERROR:  audit_logs is append-only; UPDATE is not permitted
 ```
@@ -123,7 +123,7 @@ docker compose -f docker/docker-compose.yml exec db \
 ## 4. Regional units and ULPIN (45s)
 
 ```bash
-docker compose -f docker/docker-compose.yml exec backend python -c "
+docker compose exec backend python -c "
 from app.services.units import to_sqm, resolve_unit
 print('Meerut  ', to_sqm(1,'bigha',state='Uttar Pradesh',district='Meerut')[0])
 print('Varanasi', to_sqm(1,'bigha',state='Uttar Pradesh',district='Varanasi')[0])
@@ -136,7 +136,7 @@ except Exception as e: print('no region given ->', e)
 owns. With no region supplied the system refuses to guess rather than silently picking one.
 
 ```bash
-docker compose -f docker/docker-compose.yml exec backend python -c "
+docker compose exec backend python -c "
 from app.services.ulpin import generate_ulpin, ulpin_to_centroid, validate_ulpin
 u = generate_ulpin(25.5760, 85.0640, state='Bihar'); print(u)
 print('decodes back to', ulpin_to_centroid(u))

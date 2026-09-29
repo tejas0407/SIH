@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY backend/requirements.txt .
+COPY requirements.txt .
 # torch is pinned in requirements.txt but installed here first from PyTorch's
 # CPU-only wheel index: the default PyPI wheel bundles the full NVIDIA CUDA
 # toolkit (~3.4 GB of nvidia-* packages + triton), none of which this pipeline
@@ -48,7 +48,7 @@ RUN pip install --upgrade pip \
     && pip install --no-deps --force-reinstall opencv-python-headless==4.10.0.84 \
     && python -c "import cv2; cv2.imread"
 
-COPY backend/ .
+COPY . .
 
 EXPOSE 8000
 

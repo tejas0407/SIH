@@ -1,28 +1,25 @@
-.PHONY: up down build logs seed seed-users test fmt clean push
+.PHONY: help up down logs seed seed-users test fmt
 
-up:            ## Start the full offline stack
-	docker compose -f docker/docker-compose.yml --env-file .env up --build
+help:          ## List the available commands
+	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*## /\t/'
 
-down:
-	docker compose -f docker/docker-compose.yml --env-file .env down -v
+up:            ## Build and start the local stack (http://localhost:3000)
+	docker compose up --build
 
-logs:
-	docker compose -f docker/docker-compose.yml logs -f backend celery_worker
+down:          ## Stop the stack and drop its volumes (clean slate)
+	docker compose down -v
 
-seed:          ## Load the demo reviewer accounts and the three land records (Cases A, B, C)
-	docker compose -f docker/docker-compose.yml exec backend python -m app.seed.load_demo
+logs:          ## Follow the API and worker logs
+	docker compose logs -f backend celery_worker
 
-seed-users:    ## Create/reset just the demo reviewer accounts
-	docker compose -f docker/docker-compose.yml exec backend python -m app.seed.load_users
+seed:          ## Load the demo accounts and the three demo records
+	docker compose exec backend python -m app.seed.load_demo
 
-test:
-	docker compose -f docker/docker-compose.yml exec backend pytest -q
+seed-users:    ## Create or reset just the demo accounts
+	docker compose exec backend python -m app.seed.load_users
 
-fmt:
+test:          ## Run the backend test suite
+	docker compose exec backend pytest -q
+
+fmt:           ## Lint and format the backend
 	cd backend && ruff check --fix . && ruff format .
-
-clean:
-	rm -rf backend/.data pgdata
-
-push:          ## Create the GitHub repo `SIH` and push
-	bash scripts/create_github_repo.sh

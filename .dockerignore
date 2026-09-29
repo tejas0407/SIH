@@ -1,9 +1,7 @@
-# Root .dockerignore — both docker/backend.Dockerfile and docker/frontend.Dockerfile
-# build with the repo root as context (they COPY backend/ and frontend/ explicitly),
-# so this file controls what actually gets sent to the Docker build daemon.
+# Root .dockerignore — applies to builds whose context is the repo root, i.e.
+# deploy/all-in-one/Dockerfile (backend/ and frontend/ have their own).
 # Without it, every build ships the full .git history and both dependency trees
-# to the builder before a single COPY runs — slow locally, and it burns build
-# minutes/bandwidth on a remote builder like DigitalOcean App Platform's.
+# to the builder before a single COPY runs.
 
 .git/
 .gitignore
@@ -32,7 +30,6 @@ frontend/npm-debug.log*
 *.log
 .DS_Store
 pgdata/
-minio-data/
 
 docs/
 README.md

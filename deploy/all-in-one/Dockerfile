@@ -1,5 +1,5 @@
 # Single-container build of the whole stack, for hosts that run one container
-# behind one port (see deploy/oracle/). The whole docker-compose stack — PostGIS, Redis, SeaweedFS (S3), the FastAPI backend, the Celery
+# behind one port (see deploy/vm/). The whole docker-compose stack — PostGIS, Redis, SeaweedFS (S3), the FastAPI backend, the Celery
 # worker and the Next.js console — runs here under supervisord, with nginx on
 # port 7860 as the only thing the outside world talks to:
 #
@@ -8,7 +8,7 @@
 #   /raw-scans/ etc.         -> SeaweedFS S3   127.0.0.1:9000  (presigned scan URLs, read-only)
 #
 # Build locally from the repo root to test:
-#   docker build -f docker/single/Dockerfile -t bhu-validate .
+#   docker build -f deploy/all-in-one/Dockerfile -t bhu-validate .
 #   docker run --rm -p 7860:7860 -e PUBLIC_HOST=localhost:7860 -e LOCAL_HTTP=1 bhu-validate
 
 # ---------- frontend build ----------
@@ -62,7 +62,7 @@ COPY --from=frontend /usr/local/bin/node /usr/local/bin/node
 
 WORKDIR /app
 COPY backend/requirements.txt .
-# CPU-only torch first, for the same reason as docker/backend.Dockerfile.
+# CPU-only torch first, for the same reason as backend/Dockerfile.
 RUN pip install --upgrade pip \
     && pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu \
     && pip install -r requirements.txt \
@@ -84,7 +84,7 @@ COPY --chown=user backend/ /app/
 COPY --from=frontend --chown=user /app/.next/standalone /frontend/
 COPY --from=frontend --chown=user /app/.next/static /frontend/.next/static
 COPY --from=frontend --chown=user /app/public /frontend/public
-COPY --chown=user docker/single/nginx.conf docker/single/supervisord.conf docker/single/start.sh docker/single/bootstrap.sh /opt/app/
+COPY --chown=user deploy/all-in-one/nginx.conf deploy/all-in-one/supervisord.conf deploy/all-in-one/start.sh deploy/all-in-one/bootstrap.sh /opt/app/
 RUN chmod +x /opt/app/start.sh /opt/app/bootstrap.sh
 
 USER user

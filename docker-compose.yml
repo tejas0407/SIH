@@ -1,5 +1,5 @@
-# Complete offline stack for SIH26018.
-#   docker compose -f docker/docker-compose.yml --env-file ../.env up --build
+# Local development stack for SIH26018 — every service in its own container.
+#   cp .env.example .env && docker compose up --build
 # Nothing here reaches a paid or third-party API: OCR, storage, queue and
 # database all run locally.
 
@@ -16,7 +16,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       # Migrations run once, on an empty data directory.
-      - ../backend/migrations:/docker-entrypoint-initdb.d:ro
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro
     ports:
       - "5432:5432"
     healthcheck:
@@ -69,11 +69,10 @@ services:
 
   backend:
     build:
-      context: ..
-      dockerfile: docker/backend.Dockerfile
+      context: ./backend
     container_name: dilrmp_backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-    env_file: ../.env
+    env_file: .env
     environment:
       POSTGRES_HOST: db
       REDIS_URL: redis://redis:6379/0
@@ -84,7 +83,7 @@ services:
       # resolve the compose network, so they are signed against localhost.
       MINIO_PUBLIC_ENDPOINT: localhost:9000
     volumes:
-      - ../backend:/app
+      - ./backend:/app
       - model_cache:/root/.cache
     depends_on:
       db:
@@ -105,11 +104,10 @@ services:
 
   celery_worker:
     build:
-      context: ..
-      dockerfile: docker/backend.Dockerfile
+      context: ./backend
     container_name: dilrmp_worker
     command: celery -A app.workers.celery_app.celery_app worker --loglevel=info --concurrency=2 -Q ingestion
-    env_file: ../.env
+    env_file: .env
     environment:
       POSTGRES_HOST: db
       REDIS_URL: redis://redis:6379/0
@@ -118,7 +116,7 @@ services:
       MINIO_ENDPOINT: objectstore:9000
       MINIO_PUBLIC_ENDPOINT: localhost:9000
     volumes:
-      - ../backend:/app
+      - ./backend:/app
       - model_cache:/root/.cache
     depends_on:
       db:
@@ -131,8 +129,7 @@ services:
 
   frontend:
     build:
-      context: ..
-      dockerfile: docker/frontend.Dockerfile
+      context: ./frontend
       args:
         NEXT_PUBLIC_API_BASE: http://localhost:8000/api/v1
     container_name: dilrmp_frontend
