@@ -86,9 +86,10 @@ export async function fetchQueue(
   page = 1,
   pageSize = 20,
   sort: "confidence" | "oldest" | "newest" = "confidence",
+  status: "pending" | "signed" = "pending",
 ): Promise<QueuePage> {
   const { data } = await api.get<QueuePage>("/hitl/queue", {
-    params: { page, page_size: pageSize, sort },
+    params: { page, page_size: pageSize, sort, status },
   });
   return data;
 }

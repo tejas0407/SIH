@@ -123,6 +123,8 @@ export interface KhataDetail {
   /** One displayable image per page, in order. Box `page` indexes this list. */
   page_urls?: string[];
   page_count: number;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
   audit_trail: AuditEntry[];
 }
 
@@ -136,6 +138,9 @@ export interface QueueItem {
   top_error: string | null;
   parcel_count: number;
   created_at: string;
+  approval_status?: ApprovalStatus;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
 }
 
 export interface QueuePage {

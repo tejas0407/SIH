@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Fingerprint, Lock, PenLine, ShieldCheck, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, FileCheck2, Fingerprint, Lock, PenLine, ShieldCheck, X } from "lucide-react";
 import GovFooter from "@/components/gov/GovFooter";
 import { sqm, toNumber } from "@/lib/format";
 import { useT } from "@/lib/i18n";
@@ -92,7 +93,7 @@ export default function SignModal({
         >
           {sealHash ? (
             <>
-              <SealScreen hash={sealHash} khata={draft.khata_number} />
+              <SealScreen hash={sealHash} khata={draft.khata_number} khataId={record.khata_id} />
               <GovFooter compact />
             </>
           ) : (
@@ -257,7 +258,8 @@ export default function SignModal({
   );
 }
 
-function SealScreen({ hash, khata }: { hash: string; khata: string }) {
+function SealScreen({ hash, khata, khataId }: { hash: string; khata: string; khataId: string }) {
+  const { l, en } = useT();
   return (
     <div className="flex flex-col items-center gap-4 px-8 py-12 text-center">
       <motion.div
@@ -290,7 +292,16 @@ function SealScreen({ hash, khata }: { hash: string; khata: string }) {
         <p className="break-all font-id text-xs text-verified">{hash}</p>
       </motion.div>
 
-      <p className="text-xs text-ink-faint">Returning to the review queue…</p>
+      <div className="flex w-full flex-wrap justify-center gap-3">
+        <Link href="/queue" className="btn text-base">
+          <ArrowLeft className="h-4 w-4" />
+          <span className="font-vernacular">{l("back_to_queue")}</span> / {en("back_to_queue")}
+        </Link>
+        <Link href={`/record/${khataId}`} className="btn btn-primary text-base">
+          <FileCheck2 className="h-4 w-4" />
+          <span className="font-vernacular">{l("view_certified")}</span> / {en("view_certified")}
+        </Link>
+      </div>
     </div>
   );
 }

@@ -183,6 +183,9 @@ class QueueItem(BaseModel):
     top_error: str | None = None
     parcel_count: int
     created_at: datetime
+    approval_status: ApprovalStatus = ApprovalStatus.PENDING
+    reviewed_by: str | None = None
+    reviewed_at: datetime | None = None
 
 
 class QueuePage(BaseModel):
@@ -221,6 +224,8 @@ class KhataDetail(BaseModel):
     # One displayable image per page, in order; document_url is the first.
     page_urls: list[str] = []
     page_count: int = 1
+    reviewed_by: str | None = None
+    reviewed_at: datetime | None = None
     audit_trail: list[AuditEntry] = Field(default_factory=list)
 
 

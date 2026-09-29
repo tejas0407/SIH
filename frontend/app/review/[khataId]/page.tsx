@@ -94,10 +94,6 @@ export default function ReviewPage() {
       if (response.committed) {
         setSealHash(response.ledger_head);
         confetti({ particleCount: 70, spread: 62, origin: { y: 0.7 }, disableForReducedMotion: true });
-        setTimeout(() => {
-          setSignOpen(false);
-          router.push("/queue");
-        }, 2400);
       } else {
         setSignOpen(false);
         setToast({ text: response.message, tone: "warn" });
@@ -244,6 +240,7 @@ export default function ReviewPage() {
             <ReviewForm record={record} draft={draft} onChange={setDraft} tab={tab} onTabChange={setTab} />
           </div>
           <AttestationFooter
+            khataId={record.khata_id}
             approvalStatus={record.approval_status}
             blockingCount={liveBlocking.length}
             role={role}

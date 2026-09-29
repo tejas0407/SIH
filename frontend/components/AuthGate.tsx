@@ -74,13 +74,23 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
-      <div className="flex h-screen flex-col overflow-hidden bg-surface">
-        <GovUtilityStrip />
-        <GovMasthead />
-        <div id="main-content" className="flex min-h-0 flex-1 flex-col">
-          {isReview ? children : <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>}
+      {/* On paper the portal chrome is dropped and the page flows to its full
+          length instead of scrolling inside a screen-height box. */}
+      <div className="flex h-screen flex-col overflow-hidden bg-surface print:block print:h-auto print:overflow-visible print:bg-white">
+        <div className="print:hidden">
+          <GovUtilityStrip />
+          <GovMasthead />
         </div>
-        <GovFooter compact={isReview} />
+        <div id="main-content" className="flex min-h-0 flex-1 flex-col print:block">
+          {isReview ? (
+            children
+          ) : (
+            <div className="min-h-0 flex-1 overflow-y-auto print:overflow-visible">{children}</div>
+          )}
+        </div>
+        <div className="print:hidden">
+          <GovFooter compact={isReview} />
+        </div>
       </div>
     </>
   );

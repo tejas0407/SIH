@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useT } from "@/lib/i18n";
 import type { ApprovalStatus } from "@/lib/types";
 
 interface Props {
+  khataId: string;
   approvalStatus: ApprovalStatus;
   blockingCount: number;
   role: "PATWARI" | "TEHSILDAR";
@@ -19,6 +21,7 @@ interface Props {
  * institutional actions. e-Sign is the only path a record enters the register.
  */
 export default function AttestationFooter({
+  khataId,
   approvalStatus,
   blockingCount,
   role,
@@ -35,7 +38,7 @@ export default function AttestationFooter({
 
   return (
     <div className="shrink-0 border-t border-rule bg-panel">
-      {blocked && (
+      {blocked && !settled && (
         <p className="px-5 pt-2.5 text-sm text-critical">
           {canOverride
             ? `${blockingCount} check failing — signing will be recorded as an override.`
@@ -61,26 +64,36 @@ export default function AttestationFooter({
             <span className="font-vernacular">{l("send_field")}</span>
             <span className="text-xs opacity-80">{en("send_field")}</span>
           </button>
-          <button
-            type="button"
-            onClick={onApprove}
-            disabled={approveDisabled}
-            className="inline-flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-0 rounded border border-emerald-900 bg-emerald-800 px-3 py-1.5 text-sm font-semibold leading-tight text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {settled ? (
-              <span>
-                <span className="font-vernacular">
-                  {l(approvalStatus === "REJECTED" ? "record_rejected" : "title_certified")}
-                </span>{" "}
-                / {en(approvalStatus === "REJECTED" ? "record_rejected" : "title_certified")}
-              </span>
-            ) : (
-              <>
-                <span className="font-vernacular">{l("esign_approve")}</span>
-                <span className="text-xs font-normal opacity-90">{en("esign_approve")}</span>
-              </>
-            )}
-          </button>
+          {approvalStatus === "MANUALLY_APPROVED" || approvalStatus === "AUTO_APPROVED" ? (
+            <Link
+              href={`/record/${khataId}`}
+              className="inline-flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-0 rounded border border-emerald-900 bg-emerald-800 px-3 py-1.5 text-sm font-semibold leading-tight text-white shadow-sm transition-colors hover:bg-emerald-700"
+            >
+              <span className="font-vernacular">{l("view_certified")}</span>
+              <span className="text-xs font-normal opacity-90">{en("view_certified")}</span>
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={onApprove}
+              disabled={approveDisabled}
+              className="inline-flex min-h-[3rem] flex-1 flex-col items-center justify-center gap-0 rounded border border-emerald-900 bg-emerald-800 px-3 py-1.5 text-sm font-semibold leading-tight text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {settled ? (
+                <span>
+                  <span className="font-vernacular">
+                    {l(approvalStatus === "REJECTED" ? "record_rejected" : "title_certified")}
+                  </span>{" "}
+                  / {en(approvalStatus === "REJECTED" ? "record_rejected" : "title_certified")}
+                </span>
+              ) : (
+                <>
+                  <span className="font-vernacular">{l("esign_approve")}</span>
+                  <span className="text-xs font-normal opacity-90">{en("esign_approve")}</span>
+                </>
+              )}
+            </button>
+          )}
       </div>
     </div>
   );

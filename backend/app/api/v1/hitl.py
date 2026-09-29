@@ -125,12 +125,22 @@ async def review_queue(
     page_size: int = Query(20, ge=1, le=100),
     village_code: str | None = None,
     sort: str = Query("confidence", pattern="^(confidence|oldest|newest)$"),
+    status_filter: str = Query("pending", alias="status", pattern="^(pending|signed)$"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> QueuePage:
-    """Records awaiting a human read. Sorted by confidence ascending by default
-    so the worst extractions reach a reviewer first."""
-    filters = [KhataRecord.approval_status == ApprovalStatus.PENDING]
+    """Records awaiting a human read, sorted by confidence ascending by default
+    so the worst extractions reach a reviewer first. With status=signed, the
+    records already committed to the register instead, most recent first."""
+    signed = status_filter == "signed"
+    if signed:
+        filters = [
+            KhataRecord.approval_status.in_(
+                [ApprovalStatus.MANUALLY_APPROVED, ApprovalStatus.AUTO_APPROVED]
+            )
+        ]
+    else:
+        filters = [KhataRecord.approval_status == ApprovalStatus.PENDING]
     if village_code:
         filters.append(KhataRecord.village_code == village_code)
 
@@ -143,6 +153,8 @@ async def review_queue(
         "oldest": KhataRecord.created_at.asc(),
         "newest": KhataRecord.created_at.desc(),
     }[sort]
+    if signed:
+        order = func.coalesce(KhataRecord.reviewed_at, KhataRecord.updated_at).desc()
 
     stmt = (
         select(KhataRecord)
@@ -168,6 +180,9 @@ async def review_queue(
                 top_error=(criticals or errors or [{}])[0].get("message"),
                 parcel_count=len(khata.parcels),
                 created_at=khata.created_at,
+                approval_status=khata.approval_status,
+                reviewed_by=khata.reviewed_by,
+                reviewed_at=khata.reviewed_at,
             )
         )
 
@@ -218,6 +233,8 @@ async def get_record(
         document_url=page_urls[0] if page_urls else None,
         page_urls=page_urls,
         page_count=len(page_urls) or (document.page_count if document else 1),
+        reviewed_by=khata.reviewed_by,
+        reviewed_at=khata.reviewed_at,
         audit_trail=[AuditEntry.model_validate(a) for a in trail],
     )
 

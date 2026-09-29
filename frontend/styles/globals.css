@@ -342,3 +342,23 @@ textarea {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---- print (certified copy) ------------------------------------------ */
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+  html,
+  body {
+    height: auto;
+    background: #ffffff;
+  }
+  .tricolor-edge,
+  .skip-link {
+    display: none;
+  }
+  tr {
+    break-inside: avoid;
+  }
+}
