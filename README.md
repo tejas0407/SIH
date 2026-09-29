@@ -13,14 +13,32 @@ Smart India Hackathon 2026 · Problem Statement **SIH26018** · Ministry of Rura
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-40%20passing-2ea44f?style=flat-square)
 
-[Live demo](https://172-198-137-255.sslip.io) ·
-[Architecture](docs/ARCHITECTURE.md) ·
+[Try it](#try-it) ·
+[Architecture](#architecture) ·
+[Quick start](#quick-start) ·
 [Deployment](docs/DEPLOYMENT.md) ·
 [Demo script](docs/DEMO_SCRIPT.md)
 
 <img src="docs/images/review.png" alt="Review workspace: the scanned register on the left with detected fields boxed, the editable record on the right" width="100%">
 
 </div>
+
+## Try it
+
+| | Link | Notes |
+|---|---|---|
+| 🌐 **Live demo** (Azure) | **https://172-198-137-255.sslip.io** | Always on — nothing to install |
+| 💻 **Run locally** | **http://localhost:3000** | After the [quick start](#quick-start) below; API docs at http://localhost:8000/docs |
+
+Sign in to either with a demo account:
+
+| Role | User ID | Password |
+|---|---|---|
+| Patwari | `patwari.demo` | `patwari@123` |
+| Tehsildar | `tehsildar.demo` | `tehsildar@123` |
+
+> The live demo is a public sandbox with synthetic records — please don't upload
+> real land records or personal data.
 
 ---
 
@@ -87,8 +105,44 @@ C_total = 0.5 · OCR + 0.3 · Layout + 0.2 · MathChecksPassed
 auto-commit  ⇔  C_total ≥ 0.85  and  no critical finding
 ```
 
-The full design — components, sequence and state diagrams, data model, security
-and deployment — is in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+## Architecture
+
+```mermaid
+flowchart TB
+    officer(["Officer's browser"]) -- HTTPS --> web["<b>Reviewer console</b><br/>Next.js 14"]
+    web -- "REST · JWT" --> api["<b>API</b><br/>FastAPI"]
+    web -. "scan images<br/>(presigned URLs)" .-> s3
+
+    api -- "enqueue job" --> redis[("<b>Redis</b><br/>job queue · review queue")]
+    redis --> worker["<b>Worker</b> · Celery<br/>clean → segment → OCR → extract → validate"]
+
+    api --> pg[("<b>PostgreSQL + PostGIS</b><br/>records · audit ledger")]
+    api --> s3[("<b>S3 object store</b><br/>scans · page previews")]
+    worker --> pg
+    worker --> s3
+```
+
+| Part | Technology | Role |
+|---|---|---|
+| Reviewer console | Next.js 14, TypeScript, Tailwind | Sign-in, language choice, upload, review queue, side-by-side editor, e-sign, certified copy |
+| API | FastAPI, SQLAlchemy 2, Pydantic 2 | Auth (bcrypt + JWT), upload and de-duplication, review, validation on save, exports |
+| Worker | Celery, OpenCV, PaddleOCR, Tesseract | Restores and reads each scan off the request path; stores per-page previews |
+| Database | PostgreSQL 16 + PostGIS | Records, parcel geometry, users, append-only hash-chained audit ledger |
+| Queue | Redis 7 | Job broker; review queue ordered by confidence |
+| Object store | SeaweedFS (S3 API) | Original scans and page images |
+
+In production (the live demo) the whole stack runs as one container behind
+Caddy for automatic HTTPS on a single Azure VM.
+
+**Deep dive — [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md):**
+[upload-to-review sequence](docs/ARCHITECTURE.md#ingestion-pipeline) ·
+[record lifecycle](docs/ARCHITECTURE.md#record-lifecycle) ·
+[validation rules](docs/ARCHITECTURE.md#validation-and-confidence) ·
+[data model](docs/ARCHITECTURE.md#data-model) ·
+[audit ledger](docs/ARCHITECTURE.md#audit-ledger) ·
+[security](docs/ARCHITECTURE.md#security) ·
+[deployment](docs/ARCHITECTURE.md#deployment-topologies) ·
+[design decisions](docs/ARCHITECTURE.md#design-decisions)
 
 ## Quick start
 
@@ -102,12 +156,12 @@ docker compose up --build            # or: make up
 docker compose exec backend python -m app.seed.load_demo   # demo accounts + records
 ```
 
-Open **http://localhost:3000** and sign in:
+Open **http://localhost:3000** and sign in with a [demo account](#try-it):
 
-| Role | User ID | Password | Can |
-|---|---|---|---|
-| Patwari | `patwari.demo` | `patwari@123` | Review, correct and sign records that pass every check |
-| Tehsildar | `tehsildar.demo` | `tehsildar@123` | Also sign records with a failing check (recorded as an override) |
+| Role | Can |
+|---|---|
+| Patwari | Review, correct and sign records that pass every check |
+| Tehsildar | Also sign records with a failing check (recorded as an override) |
 
 API documentation is served at http://localhost:8000/docs. Run `make help` for
 the other commands, and `make test` for the test suite.
