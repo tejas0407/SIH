@@ -200,3 +200,17 @@ def test_khata_with_no_owner_is_rejected():
 def test_confidence_weighting_matches_the_specified_formula():
     validator = LandRecordValidator()
     assert validator.score(0.9, 0.8, 1.0) == pytest.approx(0.5 * 0.9 + 0.3 * 0.8 + 0.2 * 1.0)
+
+
+def test_unread_placeholder_counts_as_missing_khata_number():
+    """A record whose Khata number OCR could not read must never auto-commit,
+    even though the placeholder "UNREAD" is stored in its place."""
+    record = {
+        "khata": {"khata_number": "UNREAD", "total_area_sqm": Decimal("100"),
+                  "ocr_confidence": 0.99, "layout_confidence": 0.99},
+        "parcels": [{"khasra_number": "12", "plot_area_sqm": Decimal("100")}],
+        "owners": [{"share_percentage": Decimal("100")}],
+    }
+    report = LandRecordValidator().validate(record)
+    assert RuleCode.MISSING_KHATA_NUMBER in {f.code for f in report.critical}
+    assert not report.is_committable

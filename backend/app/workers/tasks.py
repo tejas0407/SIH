@@ -31,7 +31,7 @@ from app.models.land import (
 )
 from app.services.audit import GENESIS, compute_entry_hash
 from app.services.storage import get_store, preview_path
-from app.services.validator import LandRecordValidator
+from app.services.validator import UNREAD_KHATA, LandRecordValidator
 from app.workers.celery_app import celery_app
 from app.workers.queue import push_to_hitl_queue
 
@@ -140,7 +140,7 @@ def process_document(self, document_id: str) -> dict:
             khata_id=uuid.uuid4(),
             document_id=document.document_id,
             village_code=document.village_code,
-            khata_number=str(khata_payload.get("khata_number") or "UNREAD"),
+            khata_number=str(khata_payload.get("khata_number") or UNREAD_KHATA),
             total_area_sqm=Decimal(str(khata_payload.get("total_area_sqm") or 0)),
             ocr_confidence=extraction.get("ocr_confidence", 0.0),
             layout_confidence=extraction.get("layout_confidence", 0.0),

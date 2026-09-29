@@ -24,6 +24,10 @@ class Severity(str, Enum):
     INFO = "INFO"
 
 
+# Stored as the Khata number when OCR could not read one.
+UNREAD_KHATA = "UNREAD"
+
+
 class RuleCode(str, Enum):
     AREA_SUM_MISMATCH = "AREA_SUM_MISMATCH"
     INVALID_OWNER_SHARES = "INVALID_OWNER_SHARES"
@@ -229,7 +233,10 @@ class LandRecordValidator:
         return findings
 
     def check_metadata(self, khata: dict) -> list[Finding]:
-        if not str(khata.get("khata_number") or "").strip():
+        # "UNREAD" is the placeholder stored when OCR finds no Khata number; it
+        # must count as missing, or an unnumbered record could auto-commit.
+        number = str(khata.get("khata_number") or "").strip()
+        if not number or number.upper() == UNREAD_KHATA:
             return [
                 Finding(
                     RuleCode.MISSING_KHATA_NUMBER, Severity.CRITICAL,
