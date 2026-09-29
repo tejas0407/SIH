@@ -3,7 +3,7 @@
 # directories, initialises Postgres on first boot, then hands off to supervisord.
 set -euo pipefail
 
-mkdir -p "$DATA_DIR/redis" "$DATA_DIR/minio" /tmp/nginx
+mkdir -p "$DATA_DIR/redis" "$DATA_DIR/objects" /tmp/nginx
 
 # A restarted container keeps /tmp and the data volume, so lock and pid files
 # from the previous run are still there; nothing is running yet, so they are
@@ -28,6 +28,24 @@ fi
 # changes between boots no longer matches the hashes already stored.
 export JWT_SECRET_KEY="${JWT_SECRET_KEY:-$(python -c 'import secrets;print(secrets.token_hex(32))')}"
 export AADHAAR_HASH_SALT="${AADHAAR_HASH_SALT:-$(python -c 'import secrets;print(secrets.token_hex(32))')}"
+
+# Object-store keys. The S3 port is reachable (read-only) through nginx for
+# presigned scan URLs, so never run with well-known defaults: generate a pair
+# per boot unless one is supplied. Stored objects don't depend on the keys.
+export MINIO_ROOT_USER="${MINIO_ROOT_USER:-app$(python -c 'import secrets;print(secrets.token_hex(8))')}"
+export MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-$(python -c 'import secrets;print(secrets.token_hex(24))')}"
+python - <<'PY'
+import json, os
+config = {"identities": [{
+    "name": "app",
+    "credentials": [{"accessKey": os.environ["MINIO_ROOT_USER"],
+                     "secretKey": os.environ["MINIO_ROOT_PASSWORD"]}],
+    "actions": ["Admin", "Read", "Write", "List", "Tagging"],
+}]}
+with open("/tmp/s3.json", "w") as f:
+    json.dump(config, f)
+os.chmod("/tmp/s3.json", 0o600)
+PY
 
 if [[ ! -s "$DATA_DIR/pg/PG_VERSION" ]]; then
   pwfile=$(mktemp)

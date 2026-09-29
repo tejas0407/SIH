@@ -16,7 +16,7 @@ it is a discrepancy worth a Tehsildar's attention. That distinction is the spine
 
 ## What it does
 
-1. **Ingests** a scan into MinIO, de-duplicated by SHA-256 so a re-scanned page never becomes a
+1. **Ingests** a scan into the S3 object store (SeaweedFS), de-duplicated by SHA-256 so a re-scanned page never becomes a
    second record to review.
 2. **Restores** the page: deskews with Hough or Radon, divides out reverse-side bleed-through,
    binarises with Sauvola so Devanagari matras survive, and repairs fold damage.
@@ -52,7 +52,7 @@ docker compose -f docker/docker-compose.yml exec backend python -m app.seed.load
 | Reviewer console | http://localhost:3000 |
 | API docs (OpenAPI) | http://localhost:8000/docs |
 | Health check | http://localhost:8000/health |
-| MinIO console | http://localhost:9001 (`minioadmin` / `minioadmin`) |
+| Object store (S3 API, SeaweedFS) | http://localhost:9000 |
 
 `make up`, `make seed`, `make test` wrap the same commands.
 
@@ -95,7 +95,7 @@ system distinguishes them.
 
 ```
                   ┌───────────┐
-   scan ────────► │  FastAPI  │ ──── MinIO (raw-scans)
+   scan ────────► │  FastAPI  │ ──── S3 store (raw-scans)
                   └─────┬─────┘
                         │ Celery job
                   ┌─────▼─────────────────────────────────┐
@@ -114,7 +114,7 @@ system distinguishes them.
                   └───────────┘     (dual-pane)         (hash-chained)
 ```
 
-**Stack.** FastAPI + Celery + PostgreSQL 16/PostGIS + Redis + MinIO; Next.js 14, TypeScript,
+**Stack.** FastAPI + Celery + PostgreSQL 16/PostGIS + Redis + SeaweedFS (S3); Next.js 14, TypeScript,
 Tailwind, TanStack Query, Zustand.
 
 ### Confidence score

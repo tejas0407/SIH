@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-shot: waits for Postgres and MinIO, creates the database, applies the
+# One-shot: waits for Postgres and the object store, creates the database, applies the
 # schema and loads the demo records. Runs under supervisord at every boot;
 # the marker file makes a supervisord-level restart a no-op.
 set -euo pipefail
@@ -10,7 +10,8 @@ marker="$DATA_DIR/.seeded"
 export PGPASSWORD="$POSTGRES_PASSWORD"
 
 until pg_isready -h 127.0.0.1 -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d postgres -q; do sleep 1; done
-until curl -sf http://127.0.0.1:9000/minio/health/live >/dev/null; do sleep 1; done
+# The S3 port answers (403 without credentials) once SeaweedFS is serving.
+until [[ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9000/)" != "000" ]]; do sleep 1; done
 
 if ! psql -h 127.0.0.1 -U "$POSTGRES_USER" -d postgres -tAc \
     "SELECT 1 FROM pg_database WHERE datname='$POSTGRES_DB'" | grep -q 1; then

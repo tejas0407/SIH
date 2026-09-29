@@ -102,12 +102,66 @@ normal `git push` redeploys automatically once the app exists.
 
 ---
 
+# Recommended: Azure for Students (free, no card)
+
+This is how the live deployment runs. **Azure for Students** gives $100 of
+credit for 12 months with no credit card (verify with a college email, student
+ID or GitHub Education). A `Standard_B2als_v2` VM (2 vCPU, 4 GiB) costs about
+$18–31/month depending on region, so the credit keeps the site up for roughly
+3–5 months. Reading a scan peaks at about 2.3 GB of RAM, which is why the
+512 MB free tiers elsewhere (Render, Koyeb, ...) can't run the full stack.
+
+It uses the same single-container image and [deploy/oracle/](deploy/oracle/)
+setup as the Oracle section below — nothing in them is Oracle-specific.
+
+## 1. Create the VM (Azure portal)
+
+1. Sign up at https://azure.microsoft.com/free/students — the student page,
+   which never asks for a card.
+2. Find the regions your subscription allows: *Policy → Assignments →
+   Allowed resource deployment regions → Parameters*. Student subscriptions
+   get about five, and only B-series sizes.
+3. *Virtual machines → Create*:
+   - **Region:** one of the allowed ones (prefer one in or near India)
+   - **Image:** Ubuntu Server 22.04 or 24.04 LTS **by Canonical**, picked
+     from the Image dropdown. Marketplace copies from other publishers
+     (cloudimg, ATH Infosystems, ...) cost extra and fail validation on a
+     student subscription.
+   - **Size:** `Standard_B2als_v2`; else `Standard_B2as_v2` or `Standard_B2s`
+     (any 4 GiB B-series). **Untick "Azure Spot"** — Spot VMs can be evicted
+     at any time.
+   - **Authentication:** SSH public key → *Generate new key pair*
+   - **Inbound ports:** SSH (22), HTTP (80), HTTPS (443)
+   - **Disks:** OS disk **64 GiB**, Standard SSD
+   - **Management:** auto-shutdown **off**
+4. Create, download the `.pem` key when prompted, and note the public IP.
+
+## 2. Deploy
+
+From the repo root on your machine (replace the key path and IP):
+
+```bash
+ssh -i path/to/key.pem azureuser@<public-ip> "sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab"
+git archive --format=tar HEAD | ssh -i path/to/key.pem azureuser@<public-ip> "mkdir -p bhu-validate && tar -x -C bhu-validate"
+ssh -i path/to/key.pem azureuser@<public-ip> "cd bhu-validate && bash deploy/oracle/setup.sh"
+```
+
+The 4 GB swap file is a safety margin: OCR plus Postgres sits close to the
+VM's 4 GiB at peak. The first build takes 15–25 minutes; the site is then at
+`https://<public-ip-with-dashes>.sslip.io`. Re-run the last two commands to
+deploy new changes; the secrets and all data are kept.
+
+Watch the credit under *Cost Management* in the portal, and stop (deallocate)
+the VM when it isn't needed to stretch it further.
+
+---
+
 # Always-on and free: Oracle Cloud Always Free VM
 
 Oracle's Always Free tier includes an Ampere A1 (ARM) VM with up to 4 OCPUs
 and 24 GB RAM, enough for the whole stack including OCR. The single-container
 image from [docker/single/Dockerfile](docker/single/Dockerfile) (the whole
-stack — PostGIS, Redis, MinIO, backend, worker and frontend — under
+stack — PostGIS, Redis, SeaweedFS (S3), backend, worker and frontend — under
 supervisord, with nginx on port 7860) builds natively on ARM,
 and [deploy/oracle/](deploy/oracle/) adds Caddy in front for automatic HTTPS
 and Docker volumes so data survives restarts and reboots.

@@ -22,7 +22,7 @@ fmt:
 	cd backend && ruff check --fix . && ruff format .
 
 clean:
-	rm -rf backend/.data pgdata minio-data
+	rm -rf backend/.data pgdata
 
 push:          ## Create the GitHub repo `SIH` and push
 	bash scripts/create_github_repo.sh

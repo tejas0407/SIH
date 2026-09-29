@@ -1,11 +1,11 @@
 # Single-container build of the whole stack, for hosts that run one container
-# behind one port (see deploy/oracle/). The whole docker-compose stack — PostGIS, Redis, MinIO, the FastAPI backend, the Celery
+# behind one port (see deploy/oracle/). The whole docker-compose stack — PostGIS, Redis, SeaweedFS (S3), the FastAPI backend, the Celery
 # worker and the Next.js console — runs here under supervisord, with nginx on
 # port 7860 as the only thing the outside world talks to:
 #
 #   /                        -> Next.js        127.0.0.1:3000
 #   /api/, /health           -> FastAPI        127.0.0.1:8000
-#   /raw-scans/ etc.         -> MinIO          127.0.0.1:9000  (presigned scan URLs)
+#   /raw-scans/ etc.         -> SeaweedFS S3   127.0.0.1:9000  (presigned scan URLs, read-only)
 #
 # Build locally from the repo root to test:
 #   docker build -f docker/single/Dockerfile -t bhu-validate .
@@ -51,9 +51,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         supervisor \
     && rm -rf /var/lib/apt/lists/*
 
-# Same MinIO release docker-compose.yml pins. dl.min.io no longer serves
-# release binaries, so take it from the official image instead.
-COPY --from=minio/minio:RELEASE.2024-09-22T00-33-43Z /usr/bin/minio /usr/local/bin/minio
+# S3-compatible object store. MinIO no longer publishes free images or
+# binaries, so scans live in SeaweedFS (Apache-2.0), which speaks the same S3
+# API the MinIO Python client uses. Same release docker-compose.yml pins; the
+# binary is static, so it runs on this Debian base as-is.
+COPY --from=chrislusf/seaweedfs:4.48 /usr/bin/weed /usr/local/bin/weed
 
 # Node runtime for the Next.js standalone server.
 COPY --from=frontend /usr/local/bin/node /usr/local/bin/node
@@ -99,8 +101,6 @@ ENV HOME=/home/user \
     CELERY_BROKER_URL=redis://127.0.0.1:6379/1 \
     CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/2 \
     MINIO_ENDPOINT=127.0.0.1:9000 \
-    MINIO_ROOT_USER=minioadmin \
-    MINIO_ROOT_PASSWORD=minioadmin \
     MINIO_SECURE=false \
     MINIO_PUBLIC_SECURE=true \
     OFFLINE_MODE=true
