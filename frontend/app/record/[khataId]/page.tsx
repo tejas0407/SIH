@@ -210,7 +210,14 @@ export default function CertifiedRecordPage() {
               </p>
             ) : (
               <dl className="grid grid-cols-2 gap-x-8 gap-y-3">
-                <Item label={bi("signed_by")} value={record.reviewed_by || "—"} />
+                <Item
+                  label={bi("signed_by")}
+                  value={
+                    record.reviewed_by_name
+                      ? `${record.reviewed_by_name} (${record.reviewed_by})`
+                      : record.reviewed_by || "—"
+                  }
+                />
                 <Item
                   label={bi("signed_on")}
                   value={record.reviewed_at ? timestamp(record.reviewed_at) : "—"}

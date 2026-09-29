@@ -110,6 +110,15 @@ def _confidence(khata: KhataRecord) -> ConfidenceBreakdown:
     )
 
 
+async def _display_names(db: AsyncSession, login_ids: set[str | None]) -> dict[str, str]:
+    """Reviewer login id -> display name, for showing who signed a record."""
+    ids = {i for i in login_ids if i}
+    if not ids:
+        return {}
+    rows = await db.execute(select(User.login_id, User.display_name).where(User.login_id.in_(ids)))
+    return {login: name for login, name in rows.all()}
+
+
 async def _load_khata(db: AsyncSession, khata_id: uuid.UUID) -> KhataRecord:
     khata = (
         await db.execute(select(KhataRecord).where(KhataRecord.khata_id == khata_id))
@@ -165,6 +174,7 @@ async def review_queue(
     )
     records = (await db.execute(stmt)).scalars().all()
 
+    names = await _display_names(db, {k.reviewed_by for k in records})
     items = []
     for khata in records:
         errors = khata.validation_errors or []
@@ -182,6 +192,7 @@ async def review_queue(
                 created_at=khata.created_at,
                 approval_status=khata.approval_status,
                 reviewed_by=khata.reviewed_by,
+                reviewed_by_name=names.get(khata.reviewed_by or ""),
                 reviewed_at=khata.reviewed_at,
             )
         )
@@ -234,6 +245,9 @@ async def get_record(
         page_urls=page_urls,
         page_count=len(page_urls) or (document.page_count if document else 1),
         reviewed_by=khata.reviewed_by,
+        reviewed_by_name=(await _display_names(db, {khata.reviewed_by})).get(
+            khata.reviewed_by or ""
+        ),
         reviewed_at=khata.reviewed_at,
         audit_trail=[AuditEntry.model_validate(a) for a in trail],
     )

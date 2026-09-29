@@ -26,7 +26,7 @@ import cv2
 import numpy as np
 
 from app.core.config import settings
-from app.services.units import UnitResolutionError, normalise_digits, parse_area_expression
+from app.services.units import _AREA_RE, UnitResolutionError, normalise_digits, to_sqm
 
 logger = logging.getLogger(__name__)
 
@@ -576,11 +576,21 @@ class DualOcrEngine:
     @staticmethod
     def _deduplicate(tokens: list[OcrToken]) -> list[OcrToken]:
         """Multiple language passes see the same glyphs. Keep the most confident
-        reading for each overlapping box."""
+        reading for each overlapping box, then drop Latin-script "ghosts": the
+        English pass reads a Devanagari word as gibberish such as "I HI 221/1"
+        over a box the Devanagari pass read properly, and those ghosts would
+        otherwise lead every table row."""
         kept: list[OcrToken] = []
         for token in sorted(tokens, key=lambda t: -t.confidence):
             if not any(_iou(token.bbox, k.bbox) > 0.6 for k in kept):
                 kept.append(token)
+        devanagari = [t for t in kept if _DEVANAGARI.search(t.text)]
+        kept = [
+            t for t in kept
+            if _DEVANAGARI.search(t.text)
+            or not _LATIN.search(t.text)
+            or _covered_fraction(t.bbox, [d.bbox for d in devanagari]) < 0.5
+        ]
         return sorted(kept, key=lambda t: (t.page, t.bbox[0] // 10, t.bbox[1]))
 
     def run(self, artifacts: PageArtifacts) -> list[OcrToken]:
@@ -601,6 +611,30 @@ class DualOcrEngine:
         return round(float(np.mean(printed)), 4) if printed else 0.0
 
 
+_DEVANAGARI = re.compile(r"[\u0900-\u097F]")
+_LATIN = re.compile(r"[A-Za-z]")
+
+
+def _covered_fraction(box: BBox, others: list[BBox]) -> float:
+    """Share of `box` that lies under any of `others` (overlaps not double-counted
+    along the dominant horizontal axis, which is how words sit on a line)."""
+    y1, x1, y2, x2 = box
+    area = max((y2 - y1) * (x2 - x1), 1)
+    spans = []
+    for oy1, ox1, oy2, ox2 in others:
+        iy1, iy2 = max(y1, oy1), min(y2, oy2)
+        ix1, ix2 = max(x1, ox1), min(x2, ox2)
+        if iy2 > iy1 and ix2 > ix1:
+            spans.append((ix1, ix2, iy2 - iy1))
+    covered, last_end = 0, x1
+    for sx1, sx2, h in sorted(spans):
+        start = max(sx1, last_end)
+        if sx2 > start:
+            covered += (sx2 - start) * h
+            last_end = sx2
+    return covered / area
+
+
 def _iou(a: BBox, b: BBox) -> float:
     ay1, ax1, ay2, ax2 = a
     by1, bx1, by2, bx2 = b
@@ -616,13 +650,20 @@ def _iou(a: BBox, b: BBox) -> float:
 # =====================================================================
 # 4. Entity extraction
 # =====================================================================
+# The label word after खाता / खसरा is optional and matched loosely: OCR drops
+# the halant or the anusvara in संख्या ("संखया", "सखया") often enough that an
+# exact match misses most real pages. Anything starting with स counts.
+_LABEL = r"(?:स\S*|क्रमांक|क्र\.?|नं\.?|no\.?)"
+# OCR reads a leading zero as the letter O ("O.35"), which would silently turn
+# 0.35 ha into 35 ha.
+_OCR_ZERO = re.compile(r"(?<![A-Za-z])[Oo](?=[.,]?\d)")
 KHATA_PATTERNS = [
-    re.compile(r"(?:खाता|खता|खाते)\s*(?:संख्या|क्रमांक|सं\.?|नं\.?|no\.?)?\s*[:\-]?\s*([0-9]+[अ-ह0-9/\-]*)"),
+    re.compile(r"(?:खाता|खता|खाते)\s*" + _LABEL + r"?\s*[:\-]?\s*([0-9]+[अ-ह0-9/\-]*)"),
     re.compile(r"khata\s*(?:no\.?|number)?\s*[:\-]?\s*([0-9][0-9/\-]*)", re.I),
     re.compile(r"(?:खाते|गट)\s*क्रमांक\s*[:\-]?\s*([0-9/\-]+)"),
 ]
 KHASRA_PATTERNS = [
-    re.compile(r"(?:खसरा|सर्वे|गट)\s*(?:संख्या|क्रमांक|नं\.?|no\.?)?\s*[:\-]?\s*([0-9][0-9/\-अ-ह]*)"),
+    re.compile(r"(?:खसरा|सर्वे|गट)\s*" + _LABEL + r"?\s*[:\-]?\s*([0-9][0-9/\-अ-ह]*)"),
     re.compile(r"(?:khasra|survey|gat)\s*(?:no\.?|number)?\s*[:\-]?\s*([0-9][0-9/\-]*)", re.I),
 ]
 RELATION_PATTERN = re.compile(
@@ -635,6 +676,7 @@ RELATION_MAP = {
     "पत्नी": "W/o", "w/o": "W/o",
     "c/o": "C/o",
 }
+OWNER_HEADING = re.compile(r"खातेदार|भूमिस्वामी|भूधारक|owner", re.I)
 SHARE_PATTERN = re.compile(r"(\d+)\s*/\s*(\d+)|(\d+(?:\.\d+)?)\s*%")
 
 
@@ -686,29 +728,56 @@ class EntityExtractor:
 
     # ---------- fields ----------
     def extract_khata_number(self, tokens: list[OcrToken]) -> tuple[str | None, float, dict | None]:
-        for token in tokens:
-            text = normalise_digits(token.text)
+        # OCR usually splits "खाता संख्या : 142" into separate words, so try each
+        # token and then each whole line.
+        candidates = [[t] for t in tokens] + self.group_rows(tokens)
+        for group in candidates:
+            text = normalise_digits(" ".join(t.text for t in group))
             for pattern in KHATA_PATTERNS:
                 match = pattern.search(text)
                 if match:
-                    return match.group(1), token.confidence, self.row_bbox([token])
+                    confidence = float(np.min([t.confidence for t in group]))
+                    return match.group(1), confidence, self.row_bbox(group)
         return None, 0.0, None
 
     def extract_area(self, text: str) -> Decimal | None:
-        try:
-            return parse_area_expression(text, self.state, self.district)
-        except UnitResolutionError:
-            return None
+        """The area printed in one table cell or line.
+
+        Two OCR passes often read the same cell twice ("0.35 hectare 0.35
+        hectare"), so a second reading in a unit already seen is a duplicate,
+        not an addition. Only different units printed back to back form a
+        compound area, e.g. "2 बीघा 10 बिस्वा".
+        """
+        cleaned = _OCR_ZERO.sub("0", normalise_digits(text))
+        total, units, last_end = Decimal("0"), set(), None
+        for match in _AREA_RE.finditer(cleaned):
+            value, unit_text = match.group("value"), match.group("unit")
+            converted = None
+            for candidate in (unit_text, unit_text.split()[0]):
+                try:
+                    converted = to_sqm(value, candidate, self.state, self.district)
+                    break
+                except (UnitResolutionError, ValueError, ArithmeticError):
+                    continue
+            if converted is None:
+                continue
+            sqm, unit = converted
+            if units and (unit.key in units or match.start() - last_end > 3):
+                break
+            total += sqm
+            units.add(unit.key)
+            last_end = match.end()
+        return total.quantize(Decimal("0.0001")) if units else None
 
     def extract_parcels(self, rows: list[list[OcrToken]]) -> list[dict]:
         parcels: list[dict] = []
         for row in rows:
             joined = normalise_digits(" ".join(t.text for t in row))
-            khasra = None
+            khasra, labelled = None, False
             for pattern in KHASRA_PATTERNS:
                 match = pattern.search(joined)
                 if match:
-                    khasra = match.group(1)
+                    khasra, labelled = match.group(1), True
                     break
             if khasra is None:
                 bare = re.match(r"^\s*([0-9]{1,5}(?:/[0-9अ-ह]+)?)\b", joined)
@@ -716,11 +785,18 @@ class EntityExtractor:
             if khasra is None:
                 continue
 
+            # A row explicitly labelled "खसरा …" whose area is unreadable (a
+            # smudged "बीघा") is still worth keeping: the reviewer sees it boxed
+            # on the scan and only types the area; area 0 guarantees review.
+            # An unlabelled line starting with a number needs a real area, or
+            # numbered owner lines would pass for parcels.
             area = self.extract_area(joined)
-            if area is None:
-                continue
-
             confidences = [t.confidence for t in row]
+            if area is None:
+                if not labelled:
+                    continue
+                area = Decimal("0")
+                confidences = [0.0]
             parcels.append(
                 {
                     "khasra_number": khasra,
@@ -750,10 +826,40 @@ class EntityExtractor:
 
     def extract_owners(self, rows: list[list[OcrToken]]) -> list[dict]:
         owners: list[dict] = []
-        for row in rows:
+        heading = next(
+            (i for i, row in enumerate(rows)
+             if OWNER_HEADING.search(" ".join(t.text for t in row))),
+            None,
+        )
+        for index, row in enumerate(rows):
             joined = " ".join(t.text for t in row).strip()
             match = RELATION_PATTERN.search(joined)
             if not match:
+                # The relation word (पुत्र, पत्नी…) is the part OCR garbles most.
+                # Under the owners heading, a line that carries a share is an
+                # owner even without it; the name is its Devanagari words.
+                if heading is None or index <= heading:
+                    continue
+                share, share_text = self._share(joined)
+                name = " ".join(
+                    t.text for t in row if _DEVANAGARI.search(t.text) and not SHARE_PATTERN.search(normalise_digits(t.text))
+                ).strip(" ,।:-.")
+                if share is None or not name:
+                    continue
+                owners.append(
+                    {
+                        "owner_name_vernacular": name,
+                        "relation_type": None,
+                        "relative_name": None,
+                        "share_percentage": share,
+                        "share_fraction": share_text,
+                        "bbox_json": self.row_bbox(row),
+                        "field_confidence": {
+                            "owner_name_vernacular": min(0.45, float(np.min([t.confidence for t in row]))),
+                            "share_percentage": round(float(np.mean([t.confidence for t in row])), 4),
+                        },
+                    }
+                )
                 continue
 
             relation = RELATION_MAP.get(match.group("rel").lower().strip())
@@ -808,10 +914,13 @@ class EntityExtractor:
         rows = self.group_rows(table_tokens)
         khata_number, khata_conf, khata_bbox = self.extract_khata_number(all_tokens)
         parcels = self.extract_parcels(rows)
-        owners = self.extract_owners(rows)
+        # Owner lists are usually printed below the parcel table, not inside it.
+        owners = self.extract_owners(self.group_rows(all_tokens))
 
         total = sum((Decimal(str(p["plot_area_sqm"])) for p in parcels), Decimal("0"))
         declared_total = self._declared_total(all_tokens)
+        if declared_total is None:
+            declared_total = self._total_row(rows, parcels)
 
         return {
             "khata": {
@@ -828,6 +937,24 @@ class EntityExtractor:
             "tokens": [t.to_dict() for t in all_tokens],
             "skew_angles": [a.skew_angle for a in artifacts],
         }
+
+    def _total_row(self, rows: list[list[OcrToken]], parcels: list[dict]) -> Decimal | None:
+        """The register's total line when its "कुल योग" label is unreadable: the
+        first table line after the last parcel that carries an area but no
+        survey number."""
+        if not parcels:
+            return None
+        last_parcel_y = max(p["bbox_json"]["ymax"] for p in parcels)
+        for row in rows:
+            if min(t.bbox[0] for t in row) <= last_parcel_y:
+                continue
+            joined = normalise_digits(" ".join(t.text for t in row))
+            if any(pattern.search(joined) for pattern in KHASRA_PATTERNS):
+                continue
+            area = self.extract_area(joined)
+            if area:
+                return area
+        return None
 
     def _declared_total(self, tokens: list[OcrToken]) -> Decimal | None:
         for token in tokens:

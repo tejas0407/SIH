@@ -124,6 +124,7 @@ export interface KhataDetail {
   page_urls?: string[];
   page_count: number;
   reviewed_by?: string | null;
+  reviewed_by_name?: string | null;
   reviewed_at?: string | null;
   audit_trail: AuditEntry[];
 }
@@ -140,6 +141,7 @@ export interface QueueItem {
   created_at: string;
   approval_status?: ApprovalStatus;
   reviewed_by?: string | null;
+  reviewed_by_name?: string | null;
   reviewed_at?: string | null;
 }
 

@@ -244,7 +244,7 @@ function SignedRow({ item }: { item: QueueItem }) {
             ) : (
               <>
                 <span className="font-vernacular">{l("signed_by")}</span> / {en("signed_by")}:{" "}
-                {item.reviewed_by ?? "—"}
+                {item.reviewed_by_name ?? item.reviewed_by ?? "—"}
                 {item.reviewed_at && ` · ${timestamp(item.reviewed_at)}`}
               </>
             )}

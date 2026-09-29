@@ -185,6 +185,7 @@ class QueueItem(BaseModel):
     created_at: datetime
     approval_status: ApprovalStatus = ApprovalStatus.PENDING
     reviewed_by: str | None = None
+    reviewed_by_name: str | None = None
     reviewed_at: datetime | None = None
 
 
@@ -225,6 +226,7 @@ class KhataDetail(BaseModel):
     page_urls: list[str] = []
     page_count: int = 1
     reviewed_by: str | None = None
+    reviewed_by_name: str | None = None
     reviewed_at: datetime | None = None
     audit_trail: list[AuditEntry] = Field(default_factory=list)
 
