@@ -138,15 +138,16 @@ sequenceDiagram
 ### Pipeline stages
 
 ```mermaid
-flowchart LR
-    A["Load pages<br/>PDF @ 300 DPI"] --> B["Deskew<br/>Hough / projection"]
-    B --> C["Remove<br/>bleed-through"]
-    C --> D["Sauvola<br/>binarisation"]
-    D --> E["Repair folds"]
-    E --> F["Segment<br/>header · table · remarks · seals"]
-    F --> G["OCR per zone<br/>PaddleOCR / Tesseract"]
-    G --> H["Extract<br/>Khata · parcels · owners"]
-    H --> I["Validate<br/>+ score"]
+flowchart TB
+    subgraph restore ["1 · Restore the page"]
+        direction LR
+        A["Load pages<br/>PDF @ 300 DPI"] --> B["Deskew"] --> C["Remove<br/>bleed-through"] --> D["Sauvola<br/>binarisation"] --> E["Repair folds"]
+    end
+    subgraph read ["2 · Read and check it"]
+        direction LR
+        F["Segment<br/>header · table ·<br/>remarks · seals"] --> G["OCR per zone<br/>PaddleOCR /<br/>Tesseract"] --> H["Extract<br/>Khata · parcels ·<br/>owners"] --> I["Validate<br/>and score"]
+    end
+    restore --> read
 ```
 
 Every extracted field keeps its **bounding box on the deskewed page**. The

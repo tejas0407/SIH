@@ -71,14 +71,13 @@ officer, worst first, in a side-by-side editor built for long working days.
 ## How it works
 
 ```mermaid
-flowchart LR
-    scan([Scanned register]) --> api[API]
-    api --> pipe["Clean · segment · OCR<br/>· extract"]
-    pipe --> check{"Confident<br/>and numbers<br/>add up?"}
+flowchart TD
+    scan([Scanned register]) --> pipe["Clean · segment · OCR · extract"]
+    pipe --> check{"Confident and<br/>numbers add up?"}
     check -- yes --> reg[(Land register)]
-    check -- no --> queue[Review queue]
-    queue --> officer["Officer corrects<br/>side by side"]
-    officer --> ledger["Hash-chained<br/>audit ledger"]
+    check -- no --> queue["Review queue<br/>worst first"]
+    queue --> officer["Officer corrects side by side<br/>and e-signs"]
+    officer --> ledger["Hash-chained audit ledger"]
     ledger --> reg
     reg --> cert([Certified copy])
 ```
