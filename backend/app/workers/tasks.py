@@ -31,7 +31,6 @@ from app.models.land import (
 )
 from app.services.audit import GENESIS, compute_entry_hash
 from app.services.storage import get_store, preview_path
-from app.services.ulpin import generate_ulpin
 from app.services.validator import LandRecordValidator
 from app.workers.celery_app import celery_app
 from app.workers.queue import push_to_hitl_queue
@@ -160,18 +159,12 @@ def process_document(self, document_id: str) -> dict:
                 bbox_json=entry.get("bbox_json"),
                 field_confidence=entry.get("field_confidence", {}),
             )
-            # A ULPIN can only be minted once the parcel is georeferenced. Where
-            # the village polygon is known we seed from its centroid; otherwise
-            # the parcel is committed without one and flagged INFO by the
-            # validator until a survey geometry arrives.
-            if village is not None and village.boundary_geom is not None:
-                try:
-                    from geoalchemy2.shape import to_shape
-
-                    centroid = to_shape(village.boundary_geom).centroid
-                    parcel.ulpin = generate_ulpin(centroid.y, centroid.x, state=village.state)
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning("ULPIN generation skipped: %s", exc)
+            # A ULPIN encodes the parcel's own location, so it is minted only
+            # once the parcel is georeferenced. A scan gives no parcel geometry;
+            # the village centroid is not a substitute — it would hand every
+            # parcel in the village the same "unique" ID (and violate the unique
+            # constraint on the second one). The validator flags the missing
+            # ULPIN until a survey geometry arrives.
             session.add(parcel)
             parcels.append(parcel)
 
