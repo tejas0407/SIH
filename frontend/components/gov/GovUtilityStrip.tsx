@@ -19,7 +19,7 @@ export default function GovUtilityStrip() {
       style={{ background: "var(--gov-navy)", color: "#cbd5e1", borderBottom: "1px solid #1e293b" }}
     >
       <div className="flex min-w-0 items-center gap-2 truncate">
-        <span className="font-medium text-slate-200">
+        <span className="truncate font-medium text-slate-200">
           <span className="font-vernacular">{l("gov_india")}</span> | Government of India
         </span>
       </div>

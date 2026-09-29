@@ -115,8 +115,8 @@ export default function HomePage() {
           <span className="font-vernacular">{l("land_record_digitisation")}</span> / {en("land_record_digitisation")}
         </h1>
         <p className="mt-2 max-w-2xl text-base text-ink-muted">
-          Upload a scanned Jamabandi, 7/12 extract or Khatauni. The system reads it, checks the
-          totals, and sends it to you only if something needs a person to look.
+          <span className="font-vernacular">{l("home_intro")}</span>
+          <span className="mt-1 block text-sm">{en("home_intro")}</span>
         </p>
       </header>
 
@@ -129,14 +129,19 @@ export default function HomePage() {
         <input {...getInputProps()} />
         <FileUp className="mx-auto mb-3 h-7 w-7 text-ink-muted" />
         <p className="text-base">
-          {isDragActive ? "Drop the scans here" : "Drop scans here, or click to choose files"}
+          <span className="font-vernacular">{l(isDragActive ? "drop_here" : "drop_scans")}</span>
+          <span className="mt-0.5 block text-sm text-ink-muted">
+            {en(isDragActive ? "drop_here" : "drop_scans")}
+          </span>
         </p>
-        <p className="mt-1 text-xs text-ink-muted">PDF, JPEG, PNG or TIFF · up to 60 MB each</p>
+        <p className="mt-2 text-xs text-ink-muted">
+          <span className="font-vernacular">{l("file_types")}</span> · {en("file_types")}
+        </p>
       </div>
 
       {jobs.length > 0 && (
         <section className="mt-6">
-          <h2 className="mb-2 text-sm text-ink-muted">Processing</h2>
+          <h2 className="mb-2 text-sm text-ink-muted"><span className="font-vernacular">{l("processing")}</span> / {en("processing")}</h2>
           <ul className="divide-y divide-rule overflow-hidden rounded border border-rule bg-panel">
             {jobs.map((job) => (
               <li key={job.documentId} className="px-4 py-3">
@@ -150,17 +155,17 @@ export default function HomePage() {
 
                   {job.status === "COMMITTED" && (
                     <span className="shrink-0 text-sm" style={{ color: "var(--verified)" }}>
-                      Committed
+                      <span className="font-vernacular">{l("committed")}</span> / {en("committed")}
                     </span>
                   )}
                   {job.status === "NEEDS_REVIEW" && job.khataId && (
                     <Link href={`/review/${job.khataId}`} className="btn shrink-0">
-                      Review now
+                      <span className="font-vernacular">{l("review_now")}</span> / {en("review_now")}
                     </Link>
                   )}
                   {job.status === "FAILED" && (
                     <span className="shrink-0 text-sm" style={{ color: "var(--critical)" }}>
-                      Failed
+                      <span className="font-vernacular">{l("failed")}</span> / {en("failed")}
                     </span>
                   )}
                   {!["COMMITTED", "NEEDS_REVIEW", "FAILED"].includes(job.status) && (

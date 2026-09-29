@@ -15,10 +15,10 @@ export const dynamic = "force-dynamic";
 type Sort = "confidence" | "oldest" | "newest";
 type View = "pending" | "signed";
 
-const SORTS: { id: Sort; label: string }[] = [
-  { id: "confidence", label: "Least confident first" },
-  { id: "oldest", label: "Oldest first" },
-  { id: "newest", label: "Newest first" },
+const SORTS: { id: Sort; label: StringKey }[] = [
+  { id: "confidence", label: "sort_confidence" },
+  { id: "oldest", label: "sort_oldest" },
+  { id: "newest", label: "sort_newest" },
 ];
 
 const VIEWS: { id: View; label: StringKey }[] = [
@@ -90,7 +90,7 @@ function Queue() {
 
         {view === "pending" && (
           <label className="mb-2 text-sm">
-            <span className="mr-2 text-ink-muted">Order</span>
+            <span className="mr-2 text-ink-muted"><span className="font-vernacular">{l("order")}</span> / {en("order")}</span>
             <select
               className="field w-auto"
               value={sort}
@@ -101,7 +101,7 @@ function Queue() {
             >
               {SORTS.map((option) => (
                 <option key={option.id} value={option.id}>
-                  {option.label}
+                  {l(option.label)} / {en(option.label)}
                 </option>
               ))}
             </select>
@@ -212,7 +212,9 @@ function PendingRow({ item }: { item: QueueItem }) {
           <div className="font-id text-lg" style={{ color: BAND_COLOR[level] }}>
             {pct(item.confidence_score, 0)}
           </div>
-          <div className="text-xs text-ink-muted">confidence</div>
+          <div className="text-xs text-ink-muted">
+            <ConfidenceLabel />
+          </div>
         </div>
         <ChevronRight className="h-5 w-5 shrink-0 text-ink-muted" />
       </Link>
@@ -270,5 +272,14 @@ function Panel({ children, tone }: { children: React.ReactNode; tone?: "critical
     >
       {children}
     </div>
+  );
+}
+
+function ConfidenceLabel() {
+  const { l, en } = useT();
+  return (
+    <>
+      <span className="font-vernacular">{l("confidence")}</span> / {en("confidence")}
+    </>
   );
 }

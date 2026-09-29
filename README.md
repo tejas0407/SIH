@@ -11,7 +11,8 @@ Smart India Hackathon 2026 · Problem Statement **SIH26018** · Ministry of Rura
 ![Next.js](https://img.shields.io/badge/Next.js%2014-000000?style=flat-square&logo=nextdotjs&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL%20%2B%20PostGIS-4169E1?style=flat-square&logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-40%20passing-2ea44f?style=flat-square)
+[![CI](https://img.shields.io/github/actions/workflow/status/tejas0407/SIH/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/tejas0407/SIH/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
 [Try it](#try-it) ·
 [Architecture](#architecture) ·
@@ -205,13 +206,19 @@ card), any other Ubuntu VM, and DigitalOcean App Platform.
 ## Testing
 
 ```bash
-docker compose exec backend pytest -q     # 40 tests
+docker compose exec backend pytest -q     # 50 tests
 ```
 
 The suite runs without any OCR model on disk and covers unit conversion and
 regional ambiguity, ULPIN integrity, every validation rule, deskew accuracy
 against known rotations, binarisation under uneven lighting, table detection
-on a degraded page, and the authentication crypto.
+on a degraded page, field extraction from noisy OCR output, and the
+authentication crypto. GitHub Actions runs it, plus a frontend typecheck and
+production build, on every push.
+
+## License
+
+[MIT](LICENSE).
 
 ---
 

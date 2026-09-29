@@ -36,7 +36,7 @@ export default function DiscrepancyDrawer({ findings, draft, onHighlight }: Prop
       >
         <AlertOctagon className="h-4 w-4 shrink-0 text-critical" />
         <span className="text-sm font-semibold text-critical">
-          {findings.length} discrepanc{findings.length === 1 ? "y" : "ies"} detected
+          {findings.length} · <DiscrepancyLabel />
         </span>
         <ChevronDown
           className={`ml-auto h-4 w-4 text-critical transition-transform ${
@@ -124,6 +124,15 @@ function HighlightLabel() {
   return (
     <>
       <span className="font-vernacular">{l("highlight_rows")}</span> / {en("highlight_rows")}
+    </>
+  );
+}
+
+function DiscrepancyLabel() {
+  const { l, en } = useT();
+  return (
+    <>
+      <span className="font-vernacular">{l("discrepancy")}</span> / {en("discrepancy")}
     </>
   );
 }

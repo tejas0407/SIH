@@ -2,6 +2,7 @@
 
 import { ArrowRight, Scale, Sigma } from "lucide-react";
 import { AREA_TOLERANCE, SHARE_TOLERANCE, hectares, sqm, toNumber } from "@/lib/format";
+import { useT } from "@/lib/i18n";
 import type { Draft } from "./ReviewForm";
 
 /**
@@ -11,6 +12,7 @@ import type { Draft } from "./ReviewForm";
  * every keystroke so a correction shows its effect while it is still being typed.
  */
 export default function MetricsBar({ draft }: { draft: Draft }) {
+  const { bi } = useT();
   const declared = toNumber(draft.total_area_sqm);
   const parcelSum = draft.parcels.reduce((t, p) => t + toNumber(p.plot_area_sqm), 0);
   const areaDelta = parcelSum - declared;
@@ -21,10 +23,10 @@ export default function MetricsBar({ draft }: { draft: Draft }) {
   const sharesOk = Math.abs(shareDelta) <= SHARE_TOLERANCE && draft.owners.length > 0;
 
   return (
-    <div className="grid shrink-0 grid-cols-2 gap-px border-b border-rule bg-rule">
+    <div className="grid shrink-0 grid-cols-1 gap-px border-b border-rule bg-rule sm:grid-cols-2">
       <Card
         icon={<Sigma className="h-4 w-4" />}
-        title="Area: parcels add up to the total?"
+        title={bi("area_check")}
         primary={`${sqm(parcelSum)} m²`}
         secondary={
           <span className="inline-flex items-center gap-1">
@@ -33,7 +35,7 @@ export default function MetricsBar({ draft }: { draft: Draft }) {
         }
         chip={
           areaOk
-            ? { text: "Balanced", tone: "ok" }
+            ? { text: bi("balanced"), tone: "ok" }
             : {
                 text: `${areaDelta > 0 ? "+" : "−"}${hectares(Math.abs(areaDelta))} ha`,
                 tone: "bad",
@@ -43,16 +45,16 @@ export default function MetricsBar({ draft }: { draft: Draft }) {
 
       <Card
         icon={<Scale className="h-4 w-4" />}
-        title="Shares: owners add up to 100%?"
+        title={bi("shares_check")}
         primary={`${shareSum.toFixed(2)} %`}
         secondary={`${draft.owners.length} co-owner${draft.owners.length === 1 ? "" : "s"} · target 100.00%`}
         chip={
           sharesOk
-            ? { text: "Balanced", tone: "ok" }
+            ? { text: bi("balanced"), tone: "ok" }
             : {
                 text:
                   draft.owners.length === 0
-                    ? "No owner"
+                    ? bi("no_owner")
                     : `${shareDelta > 0 ? "+" : "−"}${Math.abs(shareDelta).toFixed(2)} %`,
                 tone: "bad",
               }
@@ -82,7 +84,7 @@ function Card({
         {icon}
         {title}
       </div>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="font-id text-lg leading-none">{primary}</span>
         {chip && (
           <span

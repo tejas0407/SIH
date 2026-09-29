@@ -21,6 +21,8 @@ services:
       PUBLIC_HOST: ${PUBLIC_HOST}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       AADHAAR_HASH_SALT: ${AADHAAR_HASH_SALT}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       # Database, object store and seed marker survive restarts and rebuilds.
       - appdata:/home/user/data

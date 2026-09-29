@@ -275,7 +275,7 @@ export default function DocumentViewer({ pageUrls, boxes }: Props) {
             )}
           </div>
 
-          <div className="pointer-events-none rounded bg-black/55 px-2.5 py-1.5 text-2xs text-white/70 backdrop-blur">
+          <div className="pointer-events-none hidden rounded bg-black/55 px-2.5 py-1.5 text-2xs text-white/70 backdrop-blur md:block">
             {pageCount > 1
               ? `${visible.length} of ${total} fields on this page`
               : `${visible.length} fields located`}{" "}

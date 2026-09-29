@@ -45,7 +45,7 @@ export default function AttestationFooter({
             : `${blockingCount} check failing — a Tehsildar must sign this record.`}
         </p>
       )}
-      <div className="flex items-stretch gap-2 px-5 py-3">
+      <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-stretch sm:px-5">
           <button
             type="button"
             className="btn btn-danger h-auto min-h-[3rem] flex-1 flex-col gap-0 py-1.5 text-sm leading-tight"

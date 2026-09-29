@@ -38,7 +38,28 @@ EOF
   chmod 600 .env
 fi
 
+# Keys added after the first release are appended to an existing .env, so
+# re-running this on an older deployment upgrades it without touching the rest.
+add_if_missing() { grep -q "^$1=" .env || echo "$1=$2" >> .env; }
+# Object-store keys live here (not generated per boot) so that commands run
+# with `docker exec` — such as the nightly demo reset — can reach the store.
+add_if_missing MINIO_ROOT_USER "app$(openssl rand -hex 8)"
+add_if_missing MINIO_ROOT_PASSWORD "$(openssl rand -hex 24)"
+# Public sandbox: put the three demo records back every night. Set to 0 for a
+# deployment that holds real records.
+add_if_missing DEMO_NIGHTLY_RESET 1
+
 sudo docker compose up -d --build
+
+if grep -q '^DEMO_NIGHTLY_RESET=1' .env; then
+  # 20:30 UTC = 02:00 IST.
+  job="docker exec bhu-validate-app-1 python -m app.seed.reset_demo"
+  echo "30 20 * * * root $job >> /var/log/bhu-validate-reset.log 2>&1" \
+    | sudo tee /etc/cron.d/bhu-validate-reset >/dev/null
+  echo "Nightly demo reset scheduled for 02:00 IST."
+else
+  sudo rm -f /etc/cron.d/bhu-validate-reset
+fi
 
 host=$(grep '^PUBLIC_HOST=' .env | cut -d= -f2)
 echo

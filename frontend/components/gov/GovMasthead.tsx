@@ -21,27 +21,28 @@ export default function GovMasthead() {
   return (
     <div className="shrink-0 border-b border-rule bg-panel">
       <div className="tricolor-edge" />
-      <div className="flex items-center justify-between gap-6 px-5 py-3">
+      <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:gap-6 sm:px-5 sm:py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <EmblemPlaceholder className="h-11 w-11 shrink-0 text-ink" />
+          <EmblemPlaceholder className="h-9 w-9 shrink-0 text-ink sm:h-11 sm:w-11" />
           <div className="min-w-0 leading-snug">
-            <div className="text-xs font-semibold text-amber-700">
+            <div className="truncate text-2xs font-semibold text-amber-700 sm:text-xs">
               <span className="font-vernacular">{l("ministry")}</span>
               <span className="mx-1.5 text-ink-faint">|</span>
               {en("ministry")}
             </div>
-            <div className="text-lg font-bold text-ink">
+            <div className="text-base font-bold leading-snug text-ink sm:text-lg">
               <span className="font-vernacular">{l("lrm")}</span>
               <span className="mx-1.5 font-normal text-ink-faint">/</span>
-              {en("lrm")} <span className="font-normal text-ink-muted">(DILRMP)</span>
+              <span className="hidden sm:inline">{en("lrm")} </span>
+              <span className="font-normal text-ink-muted">(DILRMP)</span>
             </div>
           </div>
         </div>
 
         {user && (
           <div className="flex shrink-0 items-center gap-3">
-            <UserRound className="h-5 w-5 text-ink-muted" aria-hidden />
-            <div className="leading-snug">
+            <UserRound className="hidden h-5 w-5 text-ink-muted md:block" aria-hidden />
+            <div className="hidden leading-snug md:block">
               <div className="text-sm font-semibold">
                 {user.display_name.replace(/\s*\((Patwari|Tehsildar)\)\s*$/i, "")}
               </div>
@@ -54,10 +55,11 @@ export default function GovMasthead() {
                 router.replace("/login");
               }}
               title={bi("end_session")}
+              aria-label={bi("end_session")}
               className="btn ml-1 text-sm"
             >
               <LogOut className="h-4 w-4" />
-              <span className="font-vernacular">{l("end_session")}</span>
+              <span className="hidden font-vernacular sm:inline">{l("end_session")}</span>
             </button>
           </div>
         )}

@@ -214,11 +214,11 @@ export default function ReviewPage() {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-surface text-ink">
+    <div className="flex h-full flex-col overflow-y-auto bg-surface text-ink lg:overflow-hidden">
       <GovBreadcrumb record={record} blocking={liveBlocking} />
 
-      <div className="flex min-h-0 flex-1">
-        <section className="min-w-0 flex-[52]">
+      <div className="flex flex-col lg:min-h-0 lg:flex-1 lg:flex-row">
+        <section className="h-[60vh] min-w-0 shrink-0 lg:h-auto lg:flex-[52]">
           <DocumentViewer
             pageUrls={
               record.page_urls?.length
@@ -231,10 +231,10 @@ export default function ReviewPage() {
           />
         </section>
 
-        <section className="flex min-w-0 flex-[48] flex-col border-l border-rule bg-surface">
+        <section className="flex min-w-0 flex-col border-t border-rule bg-surface lg:min-h-0 lg:flex-[48] lg:border-l lg:border-t-0">
           {/* Checks and the form scroll together, so nothing gets squeezed to
               nothing on a short laptop screen; the actions stay pinned below. */}
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             <MetricsBar draft={draft} />
             <DiscrepancyDrawer findings={liveBlocking} draft={draft} onHighlight={handleHighlight} />
             <ReviewForm record={record} draft={draft} onChange={setDraft} tab={tab} onTabChange={setTab} />

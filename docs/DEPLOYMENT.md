@@ -101,6 +101,17 @@ ssh -i $KEY $HOST "cd bhu-validate && bash deploy/vm/setup.sh"
 starts the stack. The first build takes 15–25 minutes; the demo data is seeded
 automatically on first boot.
 
+**Public demo reset.** With `DEMO_NIGHTLY_RESET=1` (the default in
+`deploy/vm/.env`), a cron job puts the three demo records back every night at
+02:00 IST, so visitors can't leave the sandbox in a mess. To reset on demand:
+
+```bash
+ssh -i $KEY $HOST "sudo docker exec bhu-validate-app-1 python -m app.seed.reset_demo"
+```
+
+Set `DEMO_NIGHTLY_RESET=0` and re-run `setup.sh` for a deployment that holds
+real records — the reset clears everything, including the audit ledger.
+
 To build and try the all-in-one image locally:
 
 ```bash

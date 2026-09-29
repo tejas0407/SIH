@@ -186,7 +186,7 @@ function MetadataTab({
             hint={findingsFor("khata.total_area_sqm")[0]?.message}
           />
           <Field
-            label="Unit as printed"
+            label={bi("unit_as_printed")}
             fieldKey="khata.declared_unit"
             bbox={null}
             value={draft.declared_unit}
@@ -195,11 +195,11 @@ function MetadataTab({
         </div>
       </Section>
 
-      <Section title="How the composite score was reached">
-        <ConfidenceBar label="Text read from the scan" weight={0.5} value={record.confidence.ocr_confidence} />
-        <ConfidenceBar label="Page structure found" weight={0.3} value={record.confidence.layout_confidence} />
+      <Section title={bi("score_breakdown")}>
+        <ConfidenceBar label={bi("score_text")} weight={0.5} value={record.confidence.ocr_confidence} />
+        <ConfidenceBar label={bi("score_layout")} weight={0.3} value={record.confidence.layout_confidence} />
         <ConfidenceBar
-          label="Arithmetic checks passed"
+          label={bi("score_math")}
           weight={0.2}
           value={record.confidence.math_checks_pass}
         />
@@ -477,6 +477,7 @@ function CellInput({
 
 /* ----------------------------------------------------------------- Owners */
 function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => void }) {
+  const { l, en, bi } = useT();
   const highlight = useReviewStore((s) => s.highlightIssues);
   const focusField = useReviewStore((s) => s.focusField);
 
@@ -533,7 +534,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
           }}
         >
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm text-ink-faint">Co-owner {index + 1}</span>
+            <span className="text-sm text-ink-faint">{bi("co_owner")} {index + 1}</span>
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -568,7 +569,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
 
           <div className="grid grid-cols-2 gap-3">
             <Field
-              label="Name as written"
+              label={bi("name_as_written")}
               fieldKey={`owners.${index}.owner_name_vernacular`}
               bbox={owner.bbox}
               confidence={owner.confidence.owner_name_vernacular}
@@ -577,20 +578,20 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
               vernacular
             />
             <Field
-              label="Name in English"
+              label={bi("name_in_english")}
               fieldKey={`owners.${index}.owner_name_en`}
               bbox={owner.bbox}
               value={owner.owner_name_en}
               onValue={(x) => update(index, { owner_name_en: x })}
             />
             <div>
-              <label className="mb-1 block text-sm text-ink-faint">Relation</label>
+              <label className="mb-1 block text-sm text-ink-faint">{bi("relation")}</label>
               <select
                 className="field text-sm"
                 value={owner.relation_type}
                 onChange={(e) => update(index, { relation_type: e.target.value as RelationType })}
               >
-                <option value="">Not recorded</option>
+                <option value="">{bi("not_recorded")}</option>
                 <option value="S/o">S/o</option>
                 <option value="D/o">D/o</option>
                 <option value="W/o">W/o</option>
@@ -598,7 +599,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
               </select>
             </div>
             <Field
-              label="Relative's name"
+              label={bi("relatives_name")}
               fieldKey={`owners.${index}.relative_name`}
               bbox={owner.bbox}
               value={owner.relative_name}
@@ -606,7 +607,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
               vernacular
             />
             <Field
-              label="Share (%)"
+              label={`${bi("share")} (%)`}
               fieldKey={`owners.${index}.share_percentage`}
               bbox={owner.bbox}
               confidence={owner.confidence.share_percentage}
@@ -615,7 +616,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
               mono
             />
             <div>
-              <label className="mb-1 block text-sm text-ink-faint">Aadhaar (hashed on save)</label>
+              <label className="mb-1 block text-sm text-ink-faint">{bi("aadhaar_hashed")}</label>
               <input
                 className="field font-id text-sm"
                 inputMode="numeric"
@@ -632,7 +633,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
       <div className="flex gap-2">
         <button type="button" onClick={add} className="btn h-11 flex-1 text-sm">
           <Plus className="h-4 w-4" />
-          Add a co-owner
+          <span className="font-vernacular">{l("add_coowner")}</span> / {en("add_coowner")}
         </button>
         <button
           type="button"
@@ -641,7 +642,7 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
           className="btn h-11 text-sm"
           title="Set every share to an equal fraction of the holding"
         >
-          Split evenly
+          <span className="font-vernacular">{l("split_evenly")}</span> / {en("split_evenly")}
         </button>
       </div>
     </div>
@@ -650,16 +651,16 @@ function OwnersTab({ draft, onChange }: { draft: Draft; onChange: (d: Draft) => 
 
 /* ---------------------------------------------------------------- Notes */
 function NotesTab({ record }: { record: KhataDetail }) {
+  const { l, en, bi } = useT();
   return (
     <div className="space-y-5">
-      <Section title="Patwari marginal remarks">
+      <Section title={bi("patwari_remarks")}>
         <div className="rounded-md border border-dashed border-rule-strong p-5 text-center">
           <ScrollText className="mx-auto mb-2 h-6 w-6 text-ink-faint" />
-          <p className="text-sm text-ink-muted">No marginal remarks were transcribed for this record.</p>
+          <p className="text-sm text-ink-muted"><span className="font-vernacular">{l("no_remarks")}</span> / {en("no_remarks")}</p>
           <p className="mx-auto mt-1 max-w-sm text-sm leading-relaxed text-ink-faint">
-            When the Patwari&rsquo;s margin column carries a handwritten mutation note, the TrOCR
-            handwriting engine transcribes it here with a confidence badge and a cropped image of the
-            original strokes, side by side, for verification.
+            Handwritten mutation notes in the Patwari&rsquo;s margin column are read at low
+            confidence and always left for the reviewer to confirm against the scan.
           </p>
         </div>
       </Section>
