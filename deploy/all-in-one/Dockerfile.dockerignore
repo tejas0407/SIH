@@ -1,5 +1,6 @@
-# Root .dockerignore — applies to builds whose context is the repo root, i.e.
-# deploy/all-in-one/Dockerfile (backend/ and frontend/ have their own).
+# Ignore rules for deploy/all-in-one/Dockerfile, which builds with the repo
+# root as its context (Docker picks up <Dockerfile>.dockerignore next to it).
+# backend/ and frontend/ have their own .dockerignore.
 # Without it, every build ships the full .git history and both dependency trees
 # to the builder before a single COPY runs.
 

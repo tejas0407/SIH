@@ -29,7 +29,7 @@ docker compose exec backend python -m app.seed.load_demo
 | Object store (S3) | http://localhost:9000 |
 
 Migrations run automatically the first time the database starts.
-`make down` removes the volumes for a clean slate.
+`docker compose down -v` removes the volumes for a clean slate.
 
 ---
 

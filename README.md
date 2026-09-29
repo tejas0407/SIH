@@ -152,7 +152,7 @@ needed after the images are built.
 ```bash
 git clone https://github.com/tejas0407/SIH.git && cd SIH
 cp .env.example .env
-docker compose up --build            # or: make up
+docker compose up --build
 docker compose exec backend python -m app.seed.load_demo   # demo accounts + records
 ```
 
@@ -163,8 +163,7 @@ Open **http://localhost:3000** and sign in with a [demo account](#try-it):
 | Patwari | Review, correct and sign records that pass every check |
 | Tehsildar | Also sign records with a failing check (recorded as an override) |
 
-API documentation is served at http://localhost:8000/docs. Run `make help` for
-the other commands, and `make test` for the test suite.
+API documentation is served at http://localhost:8000/docs.
 
 ### Demo records
 
@@ -206,7 +205,7 @@ card), any other Ubuntu VM, and DigitalOcean App Platform.
 ## Testing
 
 ```bash
-make test        # 40 tests
+docker compose exec backend pytest -q     # 40 tests
 ```
 
 The suite runs without any OCR model on disk and covers unit conversion and

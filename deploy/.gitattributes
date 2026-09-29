@@ -1,0 +1,4 @@
+# Everything here runs inside Linux containers or on the VM, so keep Unix
+# line endings even when the repo is checked out on Windows.
+* text=auto eol=lf
+*.png binary
